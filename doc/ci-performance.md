@@ -26,7 +26,9 @@ The inherited Feedz/NuGet publishers, release-event handling, and GitHub Pages
 deployment have been removed. Validation needs no publishing secrets, NuGet OIDC
 policy, or Pages site. All validation workflows request only `contents: read`;
 the separate stale workflow requests issue and pull-request write access for
-its maintenance job. Weekly Dependabot updates cover NuGet, npm, and GitHub Actions.
+its maintenance job. Weekly Dependabot updates cover npm and GitHub Actions.
+Routine NuGet version scans are disabled to stop Feedz access in the shared
+restore graph; builds retain their required Feedz sources and package mappings.
 See the [workflow run audit](ci-workflow-runs.md) for the hosted baseline and
 the reasoning behind the trigger and optional-package policy.
 

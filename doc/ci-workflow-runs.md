@@ -3,6 +3,12 @@
 Research date: 2026-11-14. Base: `origin/main` at `8c50b8669`, after
 [Dependabot configuration PR #16](https://github.com/DenDeline/flamme/pull/16).
 
+Follow-up on `main`: the root NuGet Dependabot version-update entry was removed
+to stop Feedz scans. The shared restore graph requires Feedz-only package
+versions, so this also stops routine nuget.org update PRs. Builds retain
+`NuGet.Config`, package mappings, and locks; npm and GitHub Actions scans remain.
+The findings and decisions below describe the original workflow audit.
+
 ## Findings
 
 - Eight Dependabot PRs were open: Actions majors #17–19; production ClientLib
@@ -110,8 +116,8 @@ Hosted rollout checks remain: main Packages including coverage and artifacts,
 manual branch Packages with `build_packages` both true and false, a video-only
 PR with a successful result gate, a mixed PR with both frameworks, and
 superseding automatic runs without canceling manual requests. Local simulations
-do not establish GitHub scheduler or runner performance. The existing NuGet
-updater feed-access failure also remains outside this change.
+do not establish GitHub scheduler or runner performance. The original NuGet
+updater feed-access failure led to the follow-up scan removal noted above.
 
 ## Sources
 

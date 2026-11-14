@@ -83,17 +83,21 @@ See the [workflow run audit](doc/ci-workflow-runs.md) for the policy and baselin
 
 ### Dependency updates
 
-[Dependabot](.github/dependabot.yml) checks NuGet, GitHub Actions, and both npm
+[Dependabot](.github/dependabot.yml) checks GitHub Actions and both npm
 projects every Monday at 06:00 UTC (09:00 in Minsk). Update pull requests use
 Conventional Commits with the `chore` prefix and a dependency scope. Add any new
 npm manifest directory to the existing `directories` list so it receives updates.
 
-Minor and patch version updates are grouped by provider or package family (such
-as Microsoft, OpenTelemetry, TUnit, React, and the `actions` and `docker` action
-owners). Major upgrades and unmatched packages receive individual pull requests.
-Keep group patterns specific: `System.Linq.Dynamic.Core`, for example, is not a
-Microsoft package. Review framework-specific versions and EF Core/Npgsql
-compatibility even when packages arrive in a group.
+Minor and patch version updates are grouped by provider or package family, such
+as React, Remotion, webpack, and the `actions` and `docker` action owners. Major
+upgrades and unmatched packages receive individual pull requests.
+
+Routine NuGet version scans are disabled because the shared restore graph
+requires packages from `f.feedz.io`. This also stops routine nuget.org update
+PRs for the solution. Keep the Feedz sources and mappings in `NuGet.Config`:
+the pinned Loom and package-manifest generator versions require them. Update
+NuGet packages and regenerate complete lockfiles manually as described above.
+Repository security-alert and security-update settings are managed separately.
 
 The GitHub Actions `directories` list includes the NuGet cache composite action,
 which is outside the default workflow scan. Add other composite action directories
