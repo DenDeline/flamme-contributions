@@ -67,6 +67,31 @@ clean outputs for the selected configuration.
 See [Build, Run, And Operate](doc/wiki/build-run-operate.md) for targeted commands,
 server startup, and operational guidance.
 
+### Dependency updates
+
+[Dependabot](.github/dependabot.yml) checks NuGet, GitHub Actions, and both npm
+projects every Monday at 06:00 UTC (09:00 in Minsk). Update pull requests use
+Conventional Commits with the `chore` prefix and a dependency scope. Add any new
+npm manifest directory to the existing `directories` list so it receives updates.
+
+Minor and patch version updates are grouped by provider or package family (such
+as Microsoft, OpenTelemetry, TUnit, React, and the `actions` and `docker` action
+owners). Major upgrades and unmatched packages receive individual pull requests.
+Keep group patterns specific: `System.Linq.Dynamic.Core`, for example, is not a
+Microsoft package. Review framework-specific versions and EF Core/Npgsql
+compatibility even when packages arrive in a group.
+
+The GitHub Actions `directories` list includes the NuGet cache composite action,
+which is outside the default workflow scan. Add other composite action directories
+when they introduce external `uses:` dependencies.
+
+Routine version updates have an explicit seven-day release cooldown for every
+ecosystem, including major upgrades. A release becomes eligible after seven
+days, then waits for the next weekly scan; the cooldown does not trigger a scan
+itself. Dependabot security updates bypass the cooldown and weekly version-update
+schedule, provided security updates are enabled in the repository settings. See
+the [Dependabot options reference](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#cooldown).
+
 ### Architecture Decision Records
 
 Records live in `doc/adr/`. Name a new one `YYYY-MM-DD-slug.md` and give it a `# ` heading with the title
