@@ -67,6 +67,20 @@ clean outputs for the selected configuration.
 See [Build, Run, And Operate](doc/wiki/build-run-operate.md) for targeted commands,
 server startup, and operational guidance.
 
+### CI validation and package artifacts
+
+Pull requests run .NET validation on both supported frameworks, except changes
+entirely within the isolated `design/video/elsa-readme-video/` project. Those PRs
+still report the `ubuntu-latest` check with an explicit .NET skip decision; this
+does not validate the video's npm build. Mixed changes and production ClientLib
+updates run the complete .NET matrix. Manual PR runs always run it as well.
+Packages runs automatically after a push to `main`; development branches can request it from
+Actions → Packages → Run workflow. Select the branch and leave `build_packages`
+enabled to produce NuGet artifacts, or disable it for coverage validation only.
+All four coverage test lanes and the aggregate coverage threshold run either way.
+Manual requests stay independent; newer automatic pushes cancel superseded runs.
+See the [workflow run audit](doc/ci-workflow-runs.md) for the policy and baseline.
+
 ### Dependency updates
 
 [Dependabot](.github/dependabot.yml) checks NuGet, GitHub Actions, and both npm
