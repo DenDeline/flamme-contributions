@@ -78,7 +78,7 @@ Notable toggles in `Program.cs`:
 
 The sample configures identity, default authentication, workflow management/runtime with PostgreSQL, workflow API, fluent storage, ElsaScript blob storage, scheduling, C#, JavaScript, Python, Liquid, HTTP, and optional tenants.
 
-When running outside the explicit `Development` or `Demo` environments, configure a secure random JWT signing key with at least 32 ASCII characters. For the code-first reference server, prefer `Identity__Tokens__SigningKey` from an environment variable or secrets manager instead of committing the value to appsettings. Shell-based hosts use the shell feature path, for example `CShells__Shells__Default__Features__Identity__SigningKey`.
+When running outside the explicit `Development` or `Demo` environments, configure a secure random JWT signing key with at least 32 ASCII characters. For the code-first reference server, prefer `Identity__Tokens__SigningKey` from an environment variable or secrets manager instead of committing the value to appsettings.
 
 ## Build a container image
 
@@ -174,7 +174,7 @@ Configure operational telemetry through standard `OTEL_*` settings and your exte
 - Use `rg` to find feature registration and endpoint routes.
 - Keep package version changes centralized in [Directory.Packages.props](../../Directory.Packages.props).
 - Avoid provider-specific assumptions in core modules.
-- When changing middleware, verify both code-first host setup and shell-feature setup if applicable.
+- When changing middleware, verify the code-first host setup and its route and authorization smoke coverage.
 
 ## Release And Package Notes
 
