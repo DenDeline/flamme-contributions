@@ -3,8 +3,8 @@
         <Authors>Elsa Workflows Community</Authors>
         <Copyright>2025</Copyright>
 
-        <PackageProjectUrl>https://github.com/DenDeline/flamme</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/DenDeline/flamme</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/Moubee/flamme</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Moubee/flamme</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
 
         <LangVersion>latest</LangVersion>
