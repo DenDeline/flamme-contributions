@@ -40,7 +40,7 @@ Far more than the ticket assumes. The endpoint-declaration layer is essentially 
 | Escalation guard | [RoleAuthorizationService.cs](../../src/modules/Elsa.Identity/Services/RoleAuthorizationService.cs) | Caller may only grant permissions they hold |
 | Permission catalog | [ExternalAuthenticationContracts.cs](../../src/modules/Elsa.ExternalAuthentication/Contracts/ExternalAuthenticationContracts.cs) `IPermissionDescriptorProvider` / `IPermissionDescriptorRegistry`, `PermissionDescriptor(Name, DisplayName, Description, **Category**)` | Exists, but **only one provider is registered** — External Authentication's |
 | Deployment grant boundary | `PermissionGrantBoundary` in [DefaultPermissionGrantResolver.cs](../../src/modules/Elsa.ExternalAuthentication/Services/DefaultPermissionGrantResolver.cs), `PermissionGrantOptions.{Allowed,Denied}Permissions` | Exists, external-auth-scoped |
-| Per-tenant capability composition | CShells `IShellFeature`, [ShellInstalledFeatureProvider.cs](https://github.com/DenDeline/flamme/blob/3921715060b60520c7f015fbc23796d46e1b1dc3/src/common/Elsa.Features/Services/ShellInstalledFeatureProvider.cs) (retired), `GET /features/installed` | Exists |
+| Per-tenant capability composition | CShells `IShellFeature`, [ShellInstalledFeatureProvider.cs](https://github.com/Moubee/flamme/blob/3921715060b60520c7f015fbc23796d46e1b1dc3/src/common/Elsa.Features/Services/ShellInstalledFeatureProvider.cs) (retired), `GET /features/installed` | Exists |
 | Tenant scoping | `Entity.TenantId`, [SetTenantIdFilter.cs](../../src/modules/Elsa.Persistence.EFCore.Common/EntityHandlers/SetTenantIdFilter.cs), `""` = default, `"*"` = agnostic (ADR 0009) | Exists for EF Core |
 | Richest scope model in the repo | `ConnectionScope(ConnectionScopeKind { Host, DefaultTenant, Tenant }, TenantId)` in [ExternalAuthenticationModels.cs](../../src/modules/Elsa.ExternalAuthentication/Models/ExternalAuthenticationModels.cs) | The precedent to follow for role scoping |
 
@@ -227,7 +227,7 @@ a cached value (`Elsa.Caching` already provides distributed invalidation).
    `Elsa.ExternalAuthentication` to `Elsa.Api.Common` (or `Elsa.Identity`); leave type-forwarding
    shims. Extend the record to `(Resource, Scope, DisplayName, Description, Category)`.
    Every module with endpoints contributes a provider, following the existing
-   [ExternalAuthenticationPermissions.cs](https://github.com/DenDeline/flamme/blob/3921715060b60520c7f015fbc23796d46e1b1dc3/src/modules/Elsa.ExternalAuthentication/Permissions/ExternalAuthenticationPermissions.cs) (historical type, since replaced)
+   [ExternalAuthenticationPermissions.cs](https://github.com/Moubee/flamme/blob/3921715060b60520c7f015fbc23796d46e1b1dc3/src/modules/Elsa.ExternalAuthentication/Permissions/ExternalAuthenticationPermissions.cs) (historical type, since replaced)
    shape. This alone removes `unknown_permission_descriptor` warnings for every core permission.
 2. **Add `[Flags] PermissionScope`** in `Elsa.Api.Common`, with aggregates derived from named
    members (`Manage = View | Create | Update | Delete | Execute`), never literals, and no `All`

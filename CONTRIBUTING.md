@@ -8,7 +8,7 @@ Contributions to runtime correctness, measured performance, PostgreSQL persisten
 
 Pull requests target `main`. Keep each change focused so its behavior and verification are easy to review.
 
-1. Fork the [Flamme repository](https://github.com/DenDeline/flamme) and create a branch from the current `main`.
+1. Fork the [Flamme repository](https://github.com/Moubee/flamme) and create a branch from the current `main`.
 2. Implement the change, adding or updating relevant tests when behavior changes.
 3. Update documentation for public APIs, configuration, or operational behavior.
 4. Run the checks appropriate to the change and report the results.
@@ -158,7 +158,7 @@ For persistence changes, verify PostgreSQL behavior when durable storage is invo
 
 For a suspected vulnerability, follow the [security policy](SECURITY.md) and report privately instead of posting security details in an issue.
 
-Use [Flamme issues](https://github.com/DenDeline/flamme/issues) and include:
+Use [Flamme issues](https://github.com/Moubee/flamme/issues) and include:
 
 - A clear summary, expected behavior, and actual behavior.
 - Reproduction steps and a minimal workflow or sample where practical.

@@ -77,4 +77,4 @@ C# and JSON remain the main documented authoring paths. [Elsa Studio](https://gi
 
 Proposals should explain the production scenario, expected behavior, and how the result can be verified. Performance changes should include reproducible measurements; distributed changes should include the relevant concurrency or failure scenario.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and open proposals in [Flamme issues](https://github.com/DenDeline/flamme/issues).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and open proposals in [Flamme issues](https://github.com/Moubee/flamme/issues).

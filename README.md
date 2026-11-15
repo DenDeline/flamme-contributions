@@ -2,7 +2,7 @@
 
 **A .NET process orchestrator focused on performance and distributed production workloads.**
 
-[![Build and packages](https://github.com/DenDeline/flamme/actions/workflows/packages.yml/badge.svg)](https://github.com/DenDeline/flamme/actions/workflows/packages.yml)
+[![Build and packages](https://github.com/Moubee/flamme/actions/workflows/packages.yml/badge.svg)](https://github.com/Moubee/flamme/actions/workflows/packages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Flamme is an independent fork of [Elsa Workflows](https://github.com/elsa-workflows/elsa-core), based on [Elsa 3.9](https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0). The maintainer selected 3.9 as the most stable baseline for this fork. The **Flamme** name marks a focused direction: orchestrating processes under high load, improving runtime performance, and operating across distributed production environments, with **Kubernetes as the primary hosting target**.
@@ -142,7 +142,7 @@ Use separate liveness and readiness probes, configure PostgreSQL persistence, an
 
 ## Contributing
 
-Use [Flamme issues](https://github.com/DenDeline/flamme/issues) for bug reports, performance evidence, and proposals. Contributions should align with the [project direction](doc/project-direction.md); include representative workloads and measurements when proposing performance changes. Follow the [contribution guide](CONTRIBUTING.md) for the development workflow and validation commands.
+Use [Flamme issues](https://github.com/Moubee/flamme/issues) for bug reports, performance evidence, and proposals. Contributions should align with the [project direction](doc/project-direction.md); include representative workloads and measurements when proposing performance changes. Follow the [contribution guide](CONTRIBUTING.md) for the development workflow and validation commands.
 
 Report suspected vulnerabilities privately using the [security policy](SECURITY.md).
 
