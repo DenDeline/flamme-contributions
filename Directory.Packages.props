@@ -3,6 +3,9 @@
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
     </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.5" />
+    </ItemGroup>
     <!-- Keep ASP.NET Core and Extensions packages aligned with each target framework. -->
     <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
         <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.15"/>
@@ -139,6 +142,5 @@
         <PackageVersion Include="TUnit.Logging.Microsoft" Version="1.84.0"/>
         <PackageVersion Include="TUnit.Mocks" Version="1.84.0"/>
         <PackageVersion Include="TUnit.AspNetCore" Version="1.84.0"/>
-        <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0"/>
     </ItemGroup>
 </Project>

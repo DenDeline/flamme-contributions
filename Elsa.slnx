@@ -74,8 +74,9 @@
   </Folder>
   <Folder Name="/src/apps/">
     <File Path="src/apps/Directory.Build.props" />
-    <Project Path="src/apps/Elsa.Server.LoadBalancer/Elsa.Server.LoadBalancer.csproj" />
+    <Project Path="src/apps/Elsa.AppHost/Elsa.AppHost.csproj" />
     <Project Path="src/apps/Elsa.Server.Web/Elsa.Server.Web.csproj" />
+    <Project Path="src/apps/Elsa.ServiceDefaults/Elsa.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/clients/">
     <Project Path="src/clients/Elsa.Api.Client/Elsa.Api.Client.csproj" />

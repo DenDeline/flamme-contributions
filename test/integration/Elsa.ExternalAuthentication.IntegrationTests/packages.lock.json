@@ -1109,6 +1109,7 @@
           "Elsa.Identity": "[1.0.0, )",
           "Elsa.Persistence.EFCore.PostgreSql": "[1.0.0, )",
           "Elsa.Scheduling": "[1.0.0, )",
+          "Elsa.ServiceDefaults": "[1.0.0, )",
           "Elsa.Tenants.AspNetCore": "[1.0.0, )",
           "Elsa.WorkflowProviders.BlobStorage": "[1.0.0, )",
           "Elsa.WorkflowProviders.BlobStorage.ElsaScript": "[1.0.0, )",
@@ -1117,6 +1118,16 @@
           "Elsa.Workflows.Runtime": "[1.0.0, )",
           "Elsa.Workflows.Runtime.Dashboard": "[1.0.0, )",
           "Elsa.Workflows.Runtime.Distributed": "[1.0.0, )"
+        }
+      },
+      "elsa.servicedefaults": {
+        "type": "Project",
+        "dependencies": {
+          "Elsa.Workflows.Core": "[1.0.0, )",
+          "OpenTelemetry.Exporter.OpenTelemetryProtocol": "[1.21.0, )",
+          "OpenTelemetry.Extensions.Hosting": "[1.21.0, )",
+          "OpenTelemetry.Instrumentation.AspNetCore": "[1.21.0, )",
+          "OpenTelemetry.Instrumentation.Http": "[1.21.0, )"
         }
       },
       "elsa.tenants": {
@@ -2888,6 +2899,7 @@
           "Elsa.Identity": "[1.0.0, )",
           "Elsa.Persistence.EFCore.PostgreSql": "[1.0.0, )",
           "Elsa.Scheduling": "[1.0.0, )",
+          "Elsa.ServiceDefaults": "[1.0.0, )",
           "Elsa.Tenants.AspNetCore": "[1.0.0, )",
           "Elsa.WorkflowProviders.BlobStorage": "[1.0.0, )",
           "Elsa.WorkflowProviders.BlobStorage.ElsaScript": "[1.0.0, )",
@@ -2896,6 +2908,16 @@
           "Elsa.Workflows.Runtime": "[1.0.0, )",
           "Elsa.Workflows.Runtime.Dashboard": "[1.0.0, )",
           "Elsa.Workflows.Runtime.Distributed": "[1.0.0, )"
+        }
+      },
+      "elsa.servicedefaults": {
+        "type": "Project",
+        "dependencies": {
+          "Elsa.Workflows.Core": "[1.0.0, )",
+          "OpenTelemetry.Exporter.OpenTelemetryProtocol": "[1.21.0, )",
+          "OpenTelemetry.Extensions.Hosting": "[1.21.0, )",
+          "OpenTelemetry.Instrumentation.AspNetCore": "[1.21.0, )",
+          "OpenTelemetry.Instrumentation.Http": "[1.21.0, )"
         }
       },
       "elsa.tenants": {

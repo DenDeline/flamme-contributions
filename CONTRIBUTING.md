@@ -67,6 +67,21 @@ clean outputs for the selected configuration.
 See [Build, Run, And Operate](doc/wiki/build-run-operate.md) for targeted commands,
 server startup, and operational guidance.
 
+### Local development with Aspire
+
+Use Aspire CLI 13.6.5 to start the reference server and PostgreSQL together, with
+logs, traces, metrics, and health in the dashboard. Run `aspire run --isolated` from the
+repository root for an interactive session. For agents or Git worktrees, use:
+
+```bash
+aspire start --non-interactive --isolated --apphost src/apps/Elsa.AppHost/Elsa.AppHost.csproj
+aspire wait server --non-interactive --apphost src/apps/Elsa.AppHost/Elsa.AppHost.csproj
+```
+
+The [Aspire development guide](doc/aspire-development.md) covers prerequisites,
+endpoint discovery, the HTTP workflow demo, rebuilding a resource, and stopping
+the AppHost while retaining PostgreSQL data.
+
 ### CI validation and package artifacts
 
 Pull requests run .NET validation on both supported frameworks, except changes
