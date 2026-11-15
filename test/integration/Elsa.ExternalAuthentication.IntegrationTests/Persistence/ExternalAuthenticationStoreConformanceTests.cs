@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using System.Data.Common;
 using Elsa.Common;
 using Elsa.Common.Models;
@@ -83,7 +84,7 @@ public abstract class ExternalAuthenticationStoreConformanceTests
         await Assert.That(previewTaken.Value.HandleHash).IsEqualTo(preview.HandleHash);
         await Assert.That(await scenario.PreviewStore.TryTakeAsync(preview.HandleHash, preview.AdministratorId)).IsTypeOf<TakeResult<PreviewResult>.AlreadyConsumed>();
 
-        scenario.Clock.UtcNow = expiresAt;
+        scenario.Clock.SetUtcNow(expiresAt);
         var expiredTransaction = CreateTransaction("expired-state", expiresAt);
         await scenario.StateStore.PutAsync("ExternalSignIn", expiredTransaction.HandleHash, expiredTransaction, expiresAt);
         await Assert.That(await scenario.StateStore.TryTakeAsync<BrokerTransaction>("ExternalSignIn", expiredTransaction.HandleHash)).IsTypeOf<TakeResult<BrokerTransaction>.Expired>();
@@ -98,6 +99,62 @@ public abstract class ExternalAuthenticationStoreConformanceTests
         await scenario.PreviewStore.SaveAsync(expiredPreview);
         await Assert.That(await scenario.PreviewStore.TryTakeAsync(expiredPreview.HandleHash, expiredPreview.AdministratorId)).IsTypeOf<TakeResult<PreviewResult>.Expired>();
         await Assert.That(await scenario.PreviewStore.TryTakeAsync(expiredPreview.HandleHash, expiredPreview.AdministratorId)).IsTypeOf<TakeResult<PreviewResult>.Expired>();
+    }
+
+    [Test]
+    [Arguments(-1)]
+    [Arguments(0)]
+    [Arguments(1)]
+    public async Task OneShotStoresPreserveTickPrecisionAtExpiration(int offsetTicks)
+    {
+        await using var scenario = await CreateScenarioAsync();
+        // Expiry ticks have dedicated integer columns, so sub-microsecond boundaries
+        // remain meaningful even though PostgreSQL timestamp columns round them.
+        var expiresAt = Now.AddMinutes(1).AddTicks(7);
+        var transaction = CreateTransaction("boundary-state", expiresAt);
+        var grant = CreateGrant("boundary-grant", expiresAt);
+        var preview = CreatePreview("boundary-preview", "administrator-a", expiresAt);
+        await scenario.StateStore.PutAsync("ExternalSignIn", transaction.HandleHash, transaction, expiresAt);
+        await scenario.GrantStore.SaveAsync(grant);
+        await scenario.PreviewStore.SaveAsync(preview);
+        scenario.Clock.SetUtcNow(expiresAt.AddTicks(offsetTicks));
+
+        var stateResult = await scenario.StateStore.TryTakeAsync<BrokerTransaction>("ExternalSignIn", transaction.HandleHash);
+        var grantResult = await scenario.GrantStore.TryTakeAsync(grant.CodeHash);
+        var previewResult = await scenario.PreviewStore.TryTakeAsync(preview.HandleHash, preview.AdministratorId);
+
+        await Assert.That(stateResult).IsOfType(offsetTicks < 0 ? typeof(TakeResult<BrokerTransaction>.Taken) : typeof(TakeResult<BrokerTransaction>.Expired));
+        await Assert.That(grantResult).IsOfType(offsetTicks < 0 ? typeof(TakeResult<AuthorizationGrant>.Taken) : typeof(TakeResult<AuthorizationGrant>.Expired));
+        await Assert.That(previewResult).IsOfType(offsetTicks < 0 ? typeof(TakeResult<PreviewResult>.Taken) : typeof(TakeResult<PreviewResult>.Expired));
+    }
+
+    [Test]
+    [Arguments(-1, false)]
+    [Arguments(0, false)]
+    [Arguments(1, false)]
+    [Arguments(-1, true)]
+    [Arguments(0, true)]
+    [Arguments(1, true)]
+    public async Task RefreshRotationPreservesExpirationAndRevocationInstants(int offsetMicroseconds, bool refreshExpiresFirst)
+    {
+        await using var scenario = await CreateScenarioAsync();
+        var expiresAt = Now.AddMinutes(1);
+        var session = CreateSession("boundary-session", "tenant-a", "boundary-refresh");
+        session.ExpiresAt = refreshExpiresFirst ? expiresAt.AddMinutes(1) : expiresAt;
+        session.RefreshExpiresAt = refreshExpiresFirst ? expiresAt : expiresAt.AddMinutes(1);
+        await scenario.SessionStore.SaveAsync(session);
+        // Session timestamps use PostgreSQL timestamp precision, not integer ticks.
+        var operationAt = expiresAt.AddTicks(offsetMicroseconds * 10);
+        scenario.Clock.SetUtcNow(operationAt);
+
+        var result = await scenario.SessionStore.TryRotateRefreshTokenAsync(session.Id, "boundary-refresh", 0, "next-refresh", operationAt);
+        var stored = await scenario.SessionStore.FindByIdAsync(session.Id);
+
+        await Assert.That(result).IsOfType(offsetMicroseconds < 0 ? typeof(ExternalAuthenticationSessionRotationResult.Rotated) : typeof(ExternalAuthenticationSessionRotationResult.Expired));
+        await Assert.That(stored).IsNotNull();
+        await Assert.That(stored.RevokedAt).IsEqualTo(offsetMicroseconds < 0 ? (DateTimeOffset?)null : operationAt);
+        await Assert.That(stored.RevocationReason).IsEqualTo(offsetMicroseconds < 0 ? null : "expired");
+        await Assert.That(stored.LastRefreshedAt).IsEqualTo(offsetMicroseconds < 0 ? operationAt : Now);
     }
 
     [Test]
@@ -398,7 +455,7 @@ public enum ConformanceRacePoint
 }
 
 public sealed class ExternalAuthenticationStoreScenario(
-    ConformanceClock clock,
+    FakeTimeProvider clock,
     IExternalAuthenticationStateStore stateStore,
     IAuthorizationGrantStore grantStore,
     IExternalAuthenticationSessionStore sessionStore,
@@ -410,7 +467,7 @@ public sealed class ExternalAuthenticationStoreScenario(
     ExternalAuthenticationStoreScenario.ConformanceRaceCoordinator races,
     Func<ValueTask> disposeAsync) : IAsyncDisposable
 {
-    public ConformanceClock Clock { get; } = clock;
+    public FakeTimeProvider Clock { get; } = clock;
     public IExternalAuthenticationStateStore StateStore { get; } = stateStore;
     public IAuthorizationGrantStore GrantStore { get; } = grantStore;
     public IExternalAuthenticationSessionStore SessionStore { get; } = sessionStore;
@@ -425,7 +482,7 @@ public sealed class ExternalAuthenticationStoreScenario(
 
     public static async Task<ExternalAuthenticationStoreScenario> CreateInMemoryAsync()
     {
-        var clock = new ConformanceClock();
+        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 9, 13, 12, 0, 0, TimeSpan.Zero));
         var (users, userProvider) = await CreateUsersAsync();
         var hasher = new HmacExternalAuthenticationHandleHasher();
         var races = new ConformanceRaceCoordinator(false);
@@ -462,7 +519,7 @@ public sealed class ExternalAuthenticationStoreScenario(
         var hasher = new HmacExternalAuthenticationHandleHasher();
         var races = new ConformanceRaceCoordinator(true);
         ServiceProvider? services = null;
-        var clock = new ConformanceClock();
+        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 9, 13, 12, 0, 0, TimeSpan.Zero));
 
         try
         {
@@ -680,9 +737,4 @@ public sealed class ExternalAuthenticationStoreScenario(
         public ExternalAuthenticationElsaDbContext CreateDbContext() => new(options, serviceProvider);
         public Task<ExternalAuthenticationElsaDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) => Task.FromResult(CreateDbContext());
     }
-}
-
-public sealed class ConformanceClock : ISystemClock
-{
-    public DateTimeOffset UtcNow { get; set; } = new(2026, 9, 13, 12, 0, 0, TimeSpan.Zero);
 }

@@ -171,8 +171,8 @@ public class ExternalAuthenticationBenchmarks
         public ValueTask<IssuedTokens?> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
-    private sealed class FixedClock : ISystemClock
+    private sealed class FixedClock : TimeProvider
     {
-        public DateTimeOffset UtcNow => new(2026, 7, 24, 0, 0, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => new(2026, 7, 24, 0, 0, 0, TimeSpan.Zero);
     }
 }

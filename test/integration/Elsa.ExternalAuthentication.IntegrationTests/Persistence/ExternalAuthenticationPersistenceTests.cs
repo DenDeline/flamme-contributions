@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using Elsa.Testing.Shared.Multitenancy;
 using System.Data.Common;
 using System.Text.Json;
@@ -30,7 +31,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
     private ServiceProvider _services = null!;
     private TestDbContextFactory _dbContextFactory = null!;
     private ExternalAuthenticationDbContextLeaseFactory _leaseFactory = null!;
-    private ISystemClock _clock = null!;
+    private TimeProvider _clock = null!;
     private MemoryUserStore _userStore = null!;
     private StoreBasedUserProvider _userProvider = null!;
 
@@ -38,7 +39,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
     {
         _database = new PostgreSqlTestDatabase();
         await _database.OpenAsync();
-        _clock = new SystemClock();
+        _clock = new FakeTimeProvider(DateTimeOffset.UtcNow);
         var optionsBuilder = new DbContextOptionsBuilder<ExternalAuthenticationElsaDbContext>();
         optionsBuilder.UseElsaDbContextOptions(null);
         optionsBuilder.UseNpgsql(_database.ConnectionString, postgres => postgres.MigrationsAssembly(typeof(Elsa.ExternalAuthentication.Persistence.EFCore.PostgreSql.ExternalAuthenticationDbContextFactory).Assembly.FullName));
@@ -185,22 +186,22 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
     {
         var durableDbContexts = _leaseFactory;
         var stateStore = new EFCoreExternalAuthenticationStateStore(durableDbContexts, _clock);
-        var transaction = new BrokerTransaction { HandleHash = "state", Purpose = BrokerTransactionPurpose.ExternalSignIn, ClientId = "studio", CallbackUri = new Uri("https://studio.example/callback"), ReturnPath = "/", TenantId = "tenant-a", PkceChallenge = "challenge", ExpiresAt = _clock.UtcNow.AddMinutes(1) };
+        var transaction = new BrokerTransaction { HandleHash = "state", Purpose = BrokerTransactionPurpose.ExternalSignIn, ClientId = "studio", CallbackUri = new Uri("https://studio.example/callback"), ReturnPath = "/", TenantId = "tenant-a", PkceChallenge = "challenge", ExpiresAt = _clock.GetUtcNow().AddMinutes(1) };
         await stateStore.PutAsync("ExternalSignIn", "state", transaction, transaction.ExpiresAt);
         await Assert.That(await stateStore.TryTakeAsync<BrokerTransaction>("ExternalSignIn", "state")).IsOfType(typeof(TakeResult<BrokerTransaction>.Taken));
         await Assert.That(await stateStore.TryTakeAsync<BrokerTransaction>("ExternalSignIn", "state")).IsOfType(typeof(TakeResult<BrokerTransaction>.AlreadyConsumed));
 
         var grantStore = new EFCoreAuthorizationGrantStore(durableDbContexts, _clock);
-        await grantStore.SaveAsync(new AuthorizationGrant { CodeHash = "code", ClientId = "studio", CallbackUri = new Uri("https://studio.example/callback"), TenantId = "tenant-a", UserId = "user-a", PkceChallenge = "challenge", ExpiresAt = _clock.UtcNow.AddMinutes(1) });
+        await grantStore.SaveAsync(new AuthorizationGrant { CodeHash = "code", ClientId = "studio", CallbackUri = new Uri("https://studio.example/callback"), TenantId = "tenant-a", UserId = "user-a", PkceChallenge = "challenge", ExpiresAt = _clock.GetUtcNow().AddMinutes(1) });
         await Assert.That(await grantStore.TryTakeAsync("code")).IsOfType(typeof(TakeResult<AuthorizationGrant>.Taken));
         await Assert.That(await grantStore.TryTakeAsync("code")).IsOfType(typeof(TakeResult<AuthorizationGrant>.AlreadyConsumed));
 
         var sessionStore = new EFCoreExternalAuthenticationSessionStore(durableDbContexts, _clock);
         await sessionStore.SaveAsync(CreateSession());
-        await Assert.That(await sessionStore.TryRotateRefreshTokenAsync("session-a", "refresh-a", 0, "refresh-b", _clock.UtcNow)).IsOfType(typeof(ExternalAuthenticationSessionRotationResult.Rotated));
+        await Assert.That(await sessionStore.TryRotateRefreshTokenAsync("session-a", "refresh-a", 0, "refresh-b", _clock.GetUtcNow())).IsOfType(typeof(ExternalAuthenticationSessionRotationResult.Rotated));
         await Assert.That(await sessionStore.FindByRefreshTokenHashAsync("refresh-a")).IsNull();
         await Assert.That((await sessionStore.FindByRefreshTokenHashAsync("refresh-b"))!.Id).IsEqualTo("session-a");
-        await Assert.That(await sessionStore.TryRotateRefreshTokenAsync("session-a", "refresh-a", 0, "refresh-c", _clock.UtcNow)).IsOfType(typeof(ExternalAuthenticationSessionRotationResult.Reused));
+        await Assert.That(await sessionStore.TryRotateRefreshTokenAsync("session-a", "refresh-a", 0, "refresh-c", _clock.GetUtcNow())).IsOfType(typeof(ExternalAuthenticationSessionRotationResult.Reused));
 
         var firstNode = new EFCoreConnectionRegistryVersionStore(durableDbContexts);
         var secondNode = new EFCoreConnectionRegistryVersionStore(durableDbContexts);
@@ -224,7 +225,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
             ConnectionId = "connection-a",
             ConnectionMaterialRevision = "revision-a",
             PkceChallenge = string.Empty,
-            ExpiresAt = _clock.UtcNow.AddMinutes(1)
+            ExpiresAt = _clock.GetUtcNow().AddMinutes(1)
         };
 
         await stateStore.PutAsync("PreviewStart", transaction.HandleHash, transaction, transaction.ExpiresAt);
@@ -245,15 +246,15 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
         var afterExpiry = beforeExpiry.AddMinutes(2);
         var expiresAt = beforeExpiry.AddMinutes(1);
 
-        var stateStore = new EFCoreExternalAuthenticationStateStore(durableDbContexts, new SteppingSystemClock(afterExpiry));
+        var stateStore = new EFCoreExternalAuthenticationStateStore(durableDbContexts, new ScriptedTimeProvider(afterExpiry));
         await stateStore.PutAsync("state", "state", new BrokerTransaction { HandleHash = "state", Purpose = BrokerTransactionPurpose.ExternalSignIn, ClientId = "studio", CallbackUri = new Uri("https://studio.example/callback"), ReturnPath = "/", TenantId = "tenant-a", PkceChallenge = "challenge", ExpiresAt = expiresAt }, expiresAt);
         await Assert.That(await stateStore.TryTakeAsync<BrokerTransaction>("state", "state")).IsOfType(typeof(TakeResult<BrokerTransaction>.Expired));
 
-        var grantStore = new EFCoreAuthorizationGrantStore(durableDbContexts, new SteppingSystemClock(afterExpiry));
+        var grantStore = new EFCoreAuthorizationGrantStore(durableDbContexts, new ScriptedTimeProvider(afterExpiry));
         await grantStore.SaveAsync(new AuthorizationGrant { CodeHash = "grant", ClientId = "studio", CallbackUri = new Uri("https://studio.example/callback"), TenantId = "tenant-a", UserId = "user-a", PkceChallenge = "challenge", ExpiresAt = expiresAt });
         await Assert.That(await grantStore.TryTakeAsync("grant")).IsOfType(typeof(TakeResult<AuthorizationGrant>.Expired));
 
-        var previewStore = new EFCorePreviewResultStore(durableDbContexts, new SteppingSystemClock(afterExpiry));
+        var previewStore = new EFCorePreviewResultStore(durableDbContexts, new ScriptedTimeProvider(afterExpiry));
         await previewStore.SaveAsync(new PreviewResult("preview", "admin-a", "tenant-a", "connection-a", "revision-a", "https://issuer.example", "subject", new Dictionary<string, IReadOnlyCollection<string>>(), "allowed", [], [], expiresAt, null));
         await Assert.That(await previewStore.TryTakeAsync("preview", "admin-a")).IsOfType(typeof(TakeResult<PreviewResult>.Expired));
 
@@ -812,7 +813,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
 
     private ExternalAuthenticationSession CreateSession() => new()
     {
-        Id = "session-a", AuthenticationClientId = "studio", TenantId = "tenant-a", UserId = "user-a", ConnectionKey = "contoso", ConnectionMaterialRevision = "revision-a", Issuer = "https://issuer.example", SubjectHash = "subject", ExternalGrants = [], StartedAt = _clock.UtcNow, LastRefreshedAt = _clock.UtcNow, ExpiresAt = _clock.UtcNow.AddHours(1), RefreshExpiresAt = _clock.UtcNow.AddHours(1), CurrentRefreshTokenHash = "refresh-a"
+        Id = "session-a", AuthenticationClientId = "studio", TenantId = "tenant-a", UserId = "user-a", ConnectionKey = "contoso", ConnectionMaterialRevision = "revision-a", Issuer = "https://issuer.example", SubjectHash = "subject", ExternalGrants = [], StartedAt = _clock.GetUtcNow(), LastRefreshedAt = _clock.GetUtcNow(), ExpiresAt = _clock.GetUtcNow().AddHours(1), RefreshExpiresAt = _clock.GetUtcNow().AddHours(1), CurrentRefreshTokenHash = "refresh-a"
     };
 
     private sealed class TestDbContextFactory(DbContextOptions<ExternalAuthenticationElsaDbContext> options, IServiceProvider serviceProvider) : IDbContextFactory<ExternalAuthenticationElsaDbContext>
@@ -821,10 +822,10 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
         public Task<ExternalAuthenticationElsaDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) => Task.FromResult(CreateDbContext());
     }
 
-    private sealed class SteppingSystemClock(params DateTimeOffset[] instants) : ISystemClock
+    private sealed class ScriptedTimeProvider(params DateTimeOffset[] instants) : TimeProvider
     {
         private int _index;
-        public DateTimeOffset UtcNow => instants[Math.Min(_index++, instants.Length - 1)];
+        public override DateTimeOffset GetUtcNow() => instants[Math.Min(_index++, instants.Length - 1)];
     }
 
     private sealed class CoordinatedUserStore(IUserStore inner, int participantCount) : IUserStore
