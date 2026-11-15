@@ -4,6 +4,9 @@ This wiki maps Flamme from its source code: where the important components live,
 
 The source of truth is still the code, specs, ADRs, and tests. Each page links back to the relevant files so you can jump from explanation to implementation.
 
+The [documentation index](../README.md) ranks the repository's guides and references
+by importance. Use [domain language](../domain-language.md) for canonical terminology.
+
 ## Start Here
 
 Flamme is a modular .NET process orchestrator. The main solution is [Elsa.slnx](../../Elsa.slnx). Production code lives under [src](../../src), tests under [test](../../test), specifications under [specs](../../specs), and architecture decisions under [doc/adr](../adr).
@@ -48,8 +51,6 @@ flowchart LR
 | [Expressions And Scripting](expressions-and-scripting.md) | Expression evaluators and language feature packages. |
 | [HTTP, Scheduling, And Resilience](http-scheduling-resilience.md) | Inbound HTTP workflows, outbound HTTP, scheduled triggers, and resilience strategies. |
 | [Persistence](persistence.md) | In-memory stores, EF Core stores, provider packages, migrations, and multi-provider rules. |
-| [Diagnostics Structured Logs migration](diagnostics-structured-logs.md) | Migrate removed structured-log capture, storage, and dashboard integrations to host-owned logging. |
-| [Diagnostics Console Logs migration](diagnostics-console-logs.md) | Migrate removed console capture and streaming to the process/container logging pipeline. |
 | [Health Checks](health-checks.md) | Elsa runtime readiness probes, liveness/readiness mapping, and Kubernetes probe guidance. |
 | [Identity, Tenancy, And Security](identity-tenancy-security.md) | Users, applications, roles, API keys, tenant resolution, and authorization touch points. |
 | [Testing Guide](testing-guide.md) | TUnit and Microsoft Testing Platform project layout, fixture choices, and targeted commands. |

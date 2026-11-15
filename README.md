@@ -123,7 +123,7 @@ See [Build, Run, And Operate](doc/wiki/build-run-operate.md) for container build
 
 ## Kubernetes
 
-Kubernetes is Flamme's primary hosting target. Production hardening and deployment guidance are active roadmap priorities; the reference application and local Compose services are development examples.
+Kubernetes is Flamme's primary hosting target. Production hardening and deployment guidance are active roadmap priorities; the reference application and Aspire AppHost are development examples.
 
 Use separate liveness and readiness probes, configure PostgreSQL persistence, and provide a distributed lock provider appropriate for your cluster. The reference server's local file-system locks do not coordinate pods with separate file systems. Start with the [health-check guidance](doc/wiki/health-checks.md#kubernetes-recommendation) and [distributed runtime notes](doc/wiki/workflow-runtime.md#distributed-lock-provider-safety), then consult the [roadmap](ROADMAP.md) for planned operational work.
 
@@ -131,6 +131,7 @@ Use separate liveness and readiness probes, configure PostgreSQL persistence, an
 
 | Resource | Purpose |
 | --- | --- |
+| [Documentation index](doc/README.md) | Guides ranked by importance, retained reference material, and documentation maintenance policy. |
 | [Project direction](doc/project-direction.md) | Fork rationale, scope, and relationship to upstream. |
 | [Roadmap](ROADMAP.md) | Flamme's development priorities and future database plans. |
 | [Repository wiki](doc/wiki/README.md) | Architecture, modules, runtime behavior, and source landmarks. |
