@@ -26,10 +26,10 @@ public class WorkflowInstanceHubTests
 
     public WorkflowInstanceHubTests()
     {
-        _workflowInstanceStore = Mock.Of<IWorkflowInstanceStore>().Object;
-        _tenantAccessor = Mock.Of<ITenantAccessor>().Object;
-        _groups = Mock.Of<IGroupManager>().Object;
-        _context = Mock.Of<HubCallerContext>().Object;
+        _workflowInstanceStore = IWorkflowInstanceStore.Mock().Object;
+        _tenantAccessor = ITenantAccessor.Mock().Object;
+        _groups = IGroupManager.Mock().Object;
+        _context = HubCallerContext.Mock().Object;
         _workflowInstance = CreateWorkflowInstance(TenantId);
         _hub = new WorkflowInstanceHub(_workflowInstanceStore, _tenantAccessor)
         {
@@ -42,6 +42,13 @@ public class WorkflowInstanceHubTests
         Mock.Get(_context).ConnectionAborted.Returns(_connectionAbortedTokenSource.Token);
         UseUser(ReadWorkflowInstancesPermission);
         StubWorkflowInstance();
+    }
+
+    [After(Test)]
+    public void Cleanup()
+    {
+        _hub.Dispose();
+        _connectionAbortedTokenSource.Dispose();
     }
 
     [Test]
@@ -119,7 +126,7 @@ public class WorkflowInstanceHubTests
     [Test]
     public async Task ObserveInstanceAsync_WithoutTenantAccessor_JoinsVisibleInstanceGroup()
     {
-        var hub = new WorkflowInstanceHub(_workflowInstanceStore)
+        using var hub = new WorkflowInstanceHub(_workflowInstanceStore)
         {
             Context = _context,
             Groups = _groups
