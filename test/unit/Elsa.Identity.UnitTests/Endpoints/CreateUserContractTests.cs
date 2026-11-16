@@ -34,7 +34,7 @@ public class CreateUserContractTests
 
         await Assert.That(properties).IsEquivalentTo(
             ["GeneratedPassword", "Id", "Name", "Roles", "TenantId"],
-            TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(properties).DoesNotContain(x => x.Contains("Hash", StringComparison.OrdinalIgnoreCase) || x.Contains("Salt", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -46,7 +46,7 @@ public class CreateUserContractTests
         await Assert.That(response.GeneratedPassword).IsNull();
         await Assert.That(response.Id).IsEqualTo("user-1");
         await Assert.That(response.Name).IsEqualTo("alice");
-        await Assert.That(response.Roles).IsEquivalentTo(["admin"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(response.Roles).IsEquivalentTo(["admin"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(response.TenantId).IsEqualTo("tenant-a");
     }
 

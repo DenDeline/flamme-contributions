@@ -14,8 +14,7 @@ public class HttpEndpointContentTests(App app) : AppComponentTest(app)
     public async Task JsonContent_ValidJson_ReturnsEchoedJson()
     {
         // Arrange
-        var testData = new { Name = "John", Age = 30, City = "New York" };
-        var jsonContent = JsonSerializer.Serialize(testData);
+        const string jsonContent = """{"Name":"John","Age":30,"City":"New York"}""";
 
         // Act
         using var response = await PostJsonContentAsync(jsonContent);
@@ -26,9 +25,26 @@ public class HttpEndpointContentTests(App app) : AppComponentTest(app)
         await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("application/json");
 
         // Verify JSON structure is preserved
-        var parsedResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+        using var document = JsonDocument.Parse(responseContent);
+        var parsedResponse = document.RootElement;
         await Assert.That(parsedResponse.TryGetProperty("Name", out var nameProperty)).IsTrue();
         await Assert.That(nameProperty.GetString()).IsEqualTo("John");
+    }
+
+    [Test]
+    [Arguments("""["first",2,true]""")]
+    [Arguments("""{"Nested":[1,{"Enabled":true}]}""")]
+    [Arguments("\"hello\"")]
+    [Arguments("42")]
+    [Arguments("1.25")]
+    [Arguments("true")]
+    public async Task JsonContent_ArraysAndScalars_ReturnsEchoedJson(string jsonContent)
+    {
+        using var response = await PostJsonContentAsync(jsonContent);
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(JsonElement.DeepEquals(JsonElement.Parse(jsonContent), JsonElement.Parse(responseContent))).IsTrue();
     }
 
     [Test]

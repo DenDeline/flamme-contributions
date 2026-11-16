@@ -1,6 +1,7 @@
 using Elsa.Permissions;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Elsa.Authorization;
 using Elsa.ExternalAuthentication.Contracts;
 using Elsa.ExternalAuthentication.Models;
@@ -25,14 +26,14 @@ public class PermissionGrantPipelineTests
         var resolver = CreateResolver(userProvider, roleProvider, new ExternalAuthenticationOptions());
         var context = CreateContext(
             [
-                new GrantSourceSelection("elsa-roles", 1, JsonSerializer.SerializeToElement(new { }), 0),
-                new GrantSourceSelection("claim-mapping", 1, JsonSerializer.SerializeToElement(new { claimType = "department", mappings = new[] { new { value = "engineering", permissions = new[] { "workflows:read", "reports:view" } } } }), 1)
+                new GrantSourceSelection("elsa-roles", 1, JsonElement.Parse("{}"), 0),
+                new GrantSourceSelection("claim-mapping", 1, JsonElement.Parse("""{"claimType":"department","mappings":[{"value":"engineering","permissions":["workflows:read","reports:view"]}]}"""), 1)
             ],
             new Dictionary<string, IReadOnlyCollection<string>> { ["department"] = ["engineering"] });
 
         var result = await resolver.ResolveAsync(context);
 
-        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(["workflows:manage", "workflows:read", "reports:view"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(["workflows:manage", "workflows:read", "reports:view"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(result.Grants.First(x => x.Permission == "workflows:read").SourceType).IsEqualTo("elsa-roles");
         await Assert.That(result.Grants.First(x => x.Permission == "workflows:manage").SourceReference).IsEqualTo("role-a");
         await Assert.That(result.Grants.Last().SourceReference).IsEqualTo("department:engineering");
@@ -46,7 +47,7 @@ public class PermissionGrantPipelineTests
         options.PermissionGrants.DeniedPermissions = ["reports:blocked"];
         var resolver = CreateResolver(new StaticUserProvider(null), new StaticRoleProvider(), options);
         var context = CreateContext(
-            [new GrantSourceSelection("claim-mapping", 1, JsonSerializer.SerializeToElement(new { claimType = "department", mappings = new[] { new { value = "engineering", permissions = new[] { "reports:view", "reports:blocked" } } } }), 0)],
+            [new GrantSourceSelection("claim-mapping", 1, JsonElement.Parse("""{"claimType":"department","mappings":[{"value":"engineering","permissions":["reports:view","reports:blocked"]}]}"""), 0)],
             new Dictionary<string, IReadOnlyCollection<string>> { ["department"] = ["sales"] });
 
         var unmapped = await resolver.ResolveAsync(context);
@@ -55,7 +56,7 @@ public class PermissionGrantPipelineTests
         var mappedContext = context with { ProjectedClaims = new Dictionary<string, IReadOnlyCollection<string>> { ["department"] = ["engineering"] } };
         var mapped = await resolver.ResolveAsync(mappedContext);
 
-        await Assert.That(mapped.Grants.Select(x => x.Permission)).IsEquivalentTo(["reports:view"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(mapped.Grants.Select(x => x.Permission)).IsEquivalentTo(["reports:view"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(mapped.Warnings).Contains(warning => warning.Code == "permission_denied_by_deployment");
         await Assert.That(mapped.Warnings).Contains(warning => warning.Code == "unknown_permission_descriptor" && warning.Message.Contains("reports:view", StringComparison.Ordinal));
     }
@@ -64,7 +65,7 @@ public class PermissionGrantPipelineTests
     public async Task SupportsTheQuickstartMappingObjectShapeAndEmitsEachWarningOnce()
     {
         var resolver = CreateResolver(new StaticUserProvider(null), new StaticRoleProvider(), new ExternalAuthenticationOptions());
-        var settings = JsonSerializer.SerializeToElement(new { claimType = "groups", mappings = new Dictionary<string, string[]> { ["elsa-workflow-admins"] = ["workflows:read", "reports:view"] } });
+        var settings = JsonElement.Parse("""{"claimType":"groups","mappings":{"elsa-workflow-admins":["workflows:read","reports:view"]}}""");
         var context = CreateContext(
             [
                 new GrantSourceSelection("group-mapping", 1, settings, 0),
@@ -74,7 +75,7 @@ public class PermissionGrantPipelineTests
 
         var result = await resolver.ResolveAsync(context);
 
-        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(["reports:view", "workflows:read"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(["reports:view", "workflows:read"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(result.Warnings).HasSingleItem(warning => warning.Code == "unknown_permission_descriptor" && warning.Message.Contains("reports:view", StringComparison.Ordinal));
     }
 
@@ -84,7 +85,7 @@ public class PermissionGrantPipelineTests
         var options = new ExternalAuthenticationOptions();
         options.PermissionGrants.DeniedPermissions = ["reports:view"];
         var resolver = CreateResolver(new StaticUserProvider(null), new StaticRoleProvider(), options);
-        var settings = JsonSerializer.SerializeToElement(new { claimType = "department", mappings = new Dictionary<string, string[]> { ["engineering"] = ["reports:view"] } });
+        var settings = JsonElement.Parse("""{"claimType":"department","mappings":{"engineering":["reports:view"]}}""");
         var context = CreateContext(
             [
                 new GrantSourceSelection("claim-mapping", 1, settings, 0),
@@ -103,7 +104,7 @@ public class PermissionGrantPipelineTests
     {
         var resolver = CreateResolver(new StaticUserProvider(null), new StaticRoleProvider(), new ExternalAuthenticationOptions());
         var empty = CreateContext(
-            [new GrantSourceSelection("claim-pass-through", 1, JsonSerializer.SerializeToElement(new { claimType = "permissions", allowedPermissions = Array.Empty<string>() }), 0)],
+            [new GrantSourceSelection("claim-pass-through", 1, JsonElement.Parse("""{"claimType":"permissions","allowedPermissions":[]}"""), 0)],
             new Dictionary<string, IReadOnlyCollection<string>> { ["permissions"] = ["reports:view", "workflows:manage"] });
 
         var emptyResult = await resolver.ResolveAsync(empty);
@@ -114,18 +115,18 @@ public class PermissionGrantPipelineTests
             Connection = new EffectiveIdentityProviderConnection(new IdentityProviderConnection
             {
                 Id = "connection-a", TenantId = "tenant-a", Key = "contoso", AdapterType = "oidc", AdapterSettingsVersion = 1, DisplayName = "Contoso",
-                PermissionGrantSources = [new GrantSourceSelection("claim-pass-through", 1, JsonSerializer.SerializeToElement(new { claimType = "permissions", allowedPermissions = new[] { "reports:view" } }), 0)]
+                PermissionGrantSources = [new GrantSourceSelection("claim-pass-through", 1, JsonElement.Parse("""{"claimType":"permissions","allowedPermissions":["reports:view"]}"""), 0)]
             }, ConnectionSourceOwnership.Configuration, new ConnectionScope(ConnectionScopeKind.Tenant, "tenant-a"), ConnectionValidity.Valid, false, "test")
         };
         var boundedResult = await resolver.ResolveAsync(bounded);
 
-        await Assert.That(boundedResult.Grants.Select(x => x.Permission)).IsEquivalentTo(["reports:view"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(boundedResult.Grants.Select(x => x.Permission)).IsEquivalentTo(["reports:view"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task DelegationRequiresTheActorToPossessMappedPermissionsUnlessUnrestrictedAndStillHonorsDeploymentDeny()
     {
-        var selection = new GrantSourceSelection("group-mapping", 1, JsonSerializer.SerializeToElement(new { claimType = "groups", mappings = new Dictionary<string, string[]> { ["operators"] = ["workflows:manage"] } }), 0);
+        var selection = new GrantSourceSelection("group-mapping", 1, JsonElement.Parse("""{"claimType":"groups","mappings":{"operators":["workflows:manage"]}}"""), 0);
         var options = new ExternalAuthenticationOptions();
         var authorizer = new DefaultPermissionDelegationAuthorizer(Microsoft.Extensions.Options.Options.Create(options), PermissionEvaluator.Shared);
         var ordinaryActor = CreateActor(DelegatePermission, "workflows:read");
@@ -133,26 +134,26 @@ public class PermissionGrantPipelineTests
         var ordinary = await authorizer.AuthorizeAsync(ordinaryActor, [selection]);
 
         await Assert.That(ordinary.IsAuthorized).IsFalse();
-        await Assert.That(ordinary.UnauthorizedPermissions).IsEquivalentTo(["workflows:manage"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(ordinary.UnauthorizedPermissions).IsEquivalentTo(["workflows:manage"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
 
         options.PermissionGrants.DeniedPermissions = ["workflows:manage"];
         var unrestricted = await authorizer.AuthorizeAsync(CreateActor(DelegateUnrestrictedPermission), [selection]);
 
         await Assert.That(unrestricted.IsAuthorized).IsFalse();
-        await Assert.That(unrestricted.UnauthorizedPermissions).IsEquivalentTo(["workflows:manage"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(unrestricted.UnauthorizedPermissions).IsEquivalentTo(["workflows:manage"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task DelegationRequiresTheActorToPossessEachExplicitPassThroughPermission()
     {
-        var selection = new GrantSourceSelection("claim-pass-through", 1, JsonSerializer.SerializeToElement(new { claimType = "permissions", allowedPermissions = new[] { "reports:view" } }), 0);
+        var selection = new GrantSourceSelection("claim-pass-through", 1, JsonElement.Parse("""{"claimType":"permissions","allowedPermissions":["reports:view"]}"""), 0);
         var authorizer = new DefaultPermissionDelegationAuthorizer(Microsoft.Extensions.Options.Options.Create(new ExternalAuthenticationOptions()), PermissionEvaluator.Shared);
 
         var denied = await authorizer.AuthorizeAsync(CreateActor(DelegatePermission), [selection]);
         var allowed = await authorizer.AuthorizeAsync(CreateActor(DelegatePermission, "reports:view"), [selection]);
 
         await Assert.That(denied.IsAuthorized).IsFalse();
-        await Assert.That(denied.UnauthorizedPermissions).IsEquivalentTo(["reports:view"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(denied.UnauthorizedPermissions).IsEquivalentTo(["reports:view"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(allowed.IsAuthorized).IsTrue();
     }
 
@@ -191,7 +192,7 @@ public class PermissionGrantPipelineTests
 
         var result = await resolver.ResolveAsync(MappedContext(granted));
 
-        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(isAdmitted ? [granted] : Array.Empty<string>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(isAdmitted ? [granted] : Array.Empty<string>(), StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -223,12 +224,12 @@ public class PermissionGrantPipelineTests
         var roleProvider = new StaticRoleProvider(new Role { Id = "role-a", Name = "Operators", TenantId = "tenant-a", Permissions = ["workflows/definitions:delete", "workflows/definitions:view"] });
         var resolver = CreateResolver(userProvider, roleProvider, options);
         var context = CreateContext(
-            [new GrantSourceSelection("elsa-roles", 1, JsonSerializer.SerializeToElement(new { }), 0)],
+            [new GrantSourceSelection("elsa-roles", 1, JsonElement.Parse("{}"), 0)],
             new Dictionary<string, IReadOnlyCollection<string>>());
 
         var result = await resolver.ResolveAsync(context);
 
-        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(["workflows/definitions:view"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Grants.Select(x => x.Permission)).IsEquivalentTo(["workflows/definitions:view"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(result.Warnings).Contains(warning => warning.Code == "permission_denied_by_deployment");
     }
 
@@ -252,7 +253,7 @@ public class PermissionGrantPipelineTests
     public async Task DelegationMatchesTheActorsOwnGrantsAsPatterns(string held, string delegated, bool isAuthorized)
     {
         var authorizer = new DefaultPermissionDelegationAuthorizer(Microsoft.Extensions.Options.Options.Create(new ExternalAuthenticationOptions()), PermissionEvaluator.Shared);
-        var selection = new GrantSourceSelection("group-mapping", 1, JsonSerializer.SerializeToElement(new { claimType = "groups", mappings = new Dictionary<string, string[]> { ["operators"] = [delegated] } }), 0);
+        var selection = new GrantSourceSelection("group-mapping", 1, CreateMappingSettings("groups", "operators", delegated), 0);
 
         var result = await authorizer.AuthorizeAsync(CreateActor(DelegatePermission, held), [selection]);
 
@@ -263,7 +264,7 @@ public class PermissionGrantPipelineTests
     public async Task DelegationPermissionItselfIsHonouredThroughAWildcardGrant()
     {
         var authorizer = new DefaultPermissionDelegationAuthorizer(Microsoft.Extensions.Options.Options.Create(new ExternalAuthenticationOptions()), PermissionEvaluator.Shared);
-        var selection = new GrantSourceSelection("group-mapping", 1, JsonSerializer.SerializeToElement(new { claimType = "groups", mappings = new Dictionary<string, string[]> { ["operators"] = ["reports:view"] } }), 0);
+        var selection = new GrantSourceSelection("group-mapping", 1, JsonElement.Parse("""{"claimType":"groups","mappings":{"operators":["reports:view"]}}"""), 0);
 
         var subtree = await authorizer.AuthorizeAsync(CreateActor($"{ExternalAuthenticationResourcePermissions.PermissionGrants}:*", "reports:view"), [selection]);
         var without = await authorizer.AuthorizeAsync(CreateActor("reports:view"), [selection]);
@@ -275,8 +276,18 @@ public class PermissionGrantPipelineTests
     private const string DelegatePermission = $"{ExternalAuthenticationResourcePermissions.PermissionGrants}:{ExternalAuthenticationVerbs.Delegate}";
     private const string DelegateUnrestrictedPermission = $"{ExternalAuthenticationResourcePermissions.PermissionGrants}:{ExternalAuthenticationVerbs.DelegateUnrestricted}";
 
+    private static JsonElement CreateMappingSettings(string claimType, string value, params string[] permissions) =>
+        JsonElement.Parse(new JsonObject
+        {
+            ["claimType"] = claimType,
+            ["mappings"] = new JsonObject
+            {
+                [value] = new JsonArray(permissions.Select(permission => JsonValue.Create(permission)).ToArray())
+            }
+        }.ToJsonString());
+
     private static PermissionGrantResolutionContext MappedContext(string permission) => CreateContext(
-        [new GrantSourceSelection("claim-mapping", 1, JsonSerializer.SerializeToElement(new { claimType = "department", mappings = new Dictionary<string, string[]> { ["engineering"] = [permission] } }), 0)],
+        [new GrantSourceSelection("claim-mapping", 1, CreateMappingSettings("department", "engineering", permission), 0)],
         new Dictionary<string, IReadOnlyCollection<string>> { ["department"] = ["engineering"] });
 
     [Test]

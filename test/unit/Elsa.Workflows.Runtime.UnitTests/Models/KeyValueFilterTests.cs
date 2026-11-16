@@ -12,7 +12,7 @@ public class KeyValueFilterTests
 
         var result = filter.Apply(CreateUnorderedPairs()).Select(x => x.Key).ToList();
 
-        await Assert.That(result).IsEquivalentTo(["key-a", "key-b", "key-c"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result).IsEquivalentTo(["key-a", "key-b", "key-c"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -22,7 +22,7 @@ public class KeyValueFilterTests
 
         var result = filter.Apply(CreateUnorderedPairs()).Select(x => x.Key).ToList();
 
-        await Assert.That(result).IsEquivalentTo(["key-a", "key-b"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result).IsEquivalentTo(["key-a", "key-b"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -42,9 +42,11 @@ public class KeyValueFilterTests
 
         var result = filter.Apply(CreateUnorderedPairs()).Select(x => x.Key).ToList();
 
-        await Assert.That(result).IsEquivalentTo(["key-c", "key-a", "key-b"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result).IsEquivalentTo(["key-c", "key-a", "key-b"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
     private static IQueryable<SerializedKeyValuePair> CreateUnorderedPairs()
     {
         return new[]

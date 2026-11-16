@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -19,7 +20,9 @@ internal static class MigrationScriptGenerator
     /// <param name="fromMigration">The migration to generate the script from, or <c>null</c> for the initial database state.</param>
     /// <param name="toMigration">The migration to generate the script up to.</param>
     /// <param name="options">The SQL generation options, for example whether the script is idempotent.</param>
-    public static string Generate<TDbContext>(
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
+    public static string Generate<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TDbContext>(
         Action<DbContextOptionsBuilder<TDbContext>> configure,
         string? fromMigration,
         string toMigration,

@@ -125,8 +125,8 @@ public class DashboardAuthorizationTests
     {
         var overview = await ReadOverviewAsync(await SendAsync(HttpMethod.Get, OverviewEndpoint.Path, InstancesPermission));
 
-        await Assert.That(overview.Metrics.Select(x => x.Id)).IsEquivalentTo([InstancesMetric], TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(overview.Panels.Select(x => x.Id)).IsEquivalentTo([InstancesPanel], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(overview.Metrics.Select(x => x.Id)).IsEquivalentTo([InstancesMetric], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(overview.Panels.Select(x => x.Id)).IsEquivalentTo([InstancesPanel], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -170,9 +170,9 @@ public class DashboardAuthorizationTests
     public async Task NeedsAttention_WithInstancesView_ReturnsOnlyTheFindingsBuiltFromInstances()
     {
         var response = await SendAsync(HttpMethod.Get, "/dashboard/needs-attention", InstancesPermission);
-        var findings = (await response.Content.ReadFromJsonAsync<DashboardNeedsAttentionResponse>(JsonOptions))!.Findings;
+        var findings = (await response.Content.ReadFromJsonAsync(new TestJsonSerializerContext(new JsonSerializerOptions(JsonOptions)).DashboardNeedsAttentionResponse))!.Findings;
 
-        await Assert.That(findings.Select(x => x.Id)).IsEquivalentTo([InstancesFinding], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(findings.Select(x => x.Id)).IsEquivalentTo([InstancesFinding], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -219,7 +219,7 @@ public class DashboardAuthorizationTests
         var requirement = EndpointPermissionRegistry.FindRequirement(endpointType);
 
         await Assert.That(requirement).IsNotNull();
-        await Assert.That(requirement.AnyOf).IsEquivalentTo(new[] { new Permission(DashboardResourcePermissions.Dashboard, CoreVerbs.View), new Permission(WorkflowPermissions.Instances, CoreVerbs.View) });
+        await Assert.That(requirement.AnyOf).IsEquivalentTo(new[] { new Permission(DashboardResourcePermissions.Dashboard, CoreVerbs.View), new Permission(WorkflowPermissions.Instances, CoreVerbs.View) }, EqualityComparer<Permission>.Default);
     }
 
     [Test]
@@ -231,10 +231,10 @@ public class DashboardAuthorizationTests
     private static string Format(DashboardPermission permission) => new Permission(permission.Resource, permission.Verb).ToString();
 
     private static async Task<DashboardOverview> ReadOverviewAsync(HttpResponseMessage response) =>
-        (await response.Content.ReadFromJsonAsync<DashboardOverview>(JsonOptions))!;
+        (await response.Content.ReadFromJsonAsync(new TestJsonSerializerContext(new JsonSerializerOptions(JsonOptions)).DashboardOverview))!;
 
     private Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? permissions = null, bool authenticated = false) =>
-        _host.SendAsync(method, path, permissions, authenticated, method == HttpMethod.Post ? JsonContent.Create(new { }) : null);
+        _host.SendAsync(method, path, permissions, authenticated, method == HttpMethod.Post ? new StringContent("{}", System.Text.Encoding.UTF8, "application/json") : null);
 }
 
 public class EndpointSecurityCollection;

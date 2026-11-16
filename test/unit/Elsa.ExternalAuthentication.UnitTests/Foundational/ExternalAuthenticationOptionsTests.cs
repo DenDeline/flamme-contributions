@@ -12,6 +12,10 @@ namespace Elsa.ExternalAuthentication.UnitTests.Foundational;
 public class ExternalAuthenticationOptionsTests
 {
     [Test]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "This compatibility test exercises reflection binding for production options with init-only client records; generated binding does not populate those records.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "This compatibility test exercises reflection binding for production options with init-only client records; generated binding does not populate those records.")]
     public async Task BindsAuthenticationClientsFromConfiguration()
     {
         var configuration = new ConfigurationBuilder()
@@ -75,7 +79,7 @@ public class ExternalAuthenticationOptionsTests
         await Assert.That(connection.AdapterSettings.GetProperty("discoveryUrl").GetString()).IsEqualTo("https://localhost:8443/realms/elsa/.well-known/openid-configuration");
         await Assert.That(connection.AdapterSettings.GetProperty("clientId").GetString()).IsEqualTo("elsa-studio-idp");
         string?[] expectedScopes = ["profile", "email"];
-        await Assert.That(connection.AdapterSettings.GetProperty("scopes").EnumerateArray().Select(x => x.GetString())).IsEquivalentTo(expectedScopes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(connection.AdapterSettings.GetProperty("scopes").EnumerateArray().Select(x => x.GetString())).IsEquivalentTo(expectedScopes, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(connection.UnlinkedPolicy?.Settings.GetProperty("defaultRoleIds")[0].GetString()).IsEqualTo("admin");
         var grantSource = await Assert.That(connection.PermissionGrantSources).HasSingleItem();
         await Assert.That(grantSource.Settings.GetProperty("claimType").GetString()).IsEqualTo("groups");

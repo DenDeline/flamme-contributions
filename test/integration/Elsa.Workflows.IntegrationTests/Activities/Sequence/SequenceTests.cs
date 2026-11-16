@@ -20,7 +20,7 @@ public class SequenceTests : IAsyncDisposable
 
         // Assert
         await Assert.That(result.WorkflowState.Status).IsEqualTo(WorkflowStatus.Finished);
-        await Assert.That(lines).IsEquivalentTo(new[] { "Activity 1", "Activity 2", "Activity 3" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(lines).IsEquivalentTo(new[] { "Activity 1", "Activity 2", "Activity 3" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -32,7 +32,7 @@ public class SequenceTests : IAsyncDisposable
 
         // Assert
         await Assert.That(result.WorkflowState.Status).IsEqualTo(WorkflowStatus.Finished);
-        await Assert.That(lines).IsEquivalentTo(new[] { "Before Break" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(lines).IsEquivalentTo(new[] { "Before Break" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(lines).DoesNotContain("After Break (should not execute)");
     }
 
@@ -45,7 +45,7 @@ public class SequenceTests : IAsyncDisposable
 
         // Assert
         await Assert.That(result.WorkflowState.Status).IsEqualTo(WorkflowStatus.Finished);
-        await Assert.That(lines).IsEquivalentTo(new[] { "Iteration 1", "Iteration 2" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(lines).IsEquivalentTo(new[] { "Iteration 1", "Iteration 2" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(lines).DoesNotContain("Iteration 3 (should not execute)");
     }
 
@@ -62,7 +62,7 @@ public class SequenceTests : IAsyncDisposable
         {
             "Outer: Start",
             "Inner: Activity 1"
-        }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(lines).DoesNotContain("Inner: Activity 2 (should not execute)");
         await Assert.That(lines).DoesNotContain("Outer: After inner sequence");
         await Assert.That(lines).DoesNotContain("Outer: End");
@@ -77,7 +77,7 @@ public class SequenceTests : IAsyncDisposable
 
         // Assert
         await Assert.That(result.WorkflowState.Status).IsEqualTo(WorkflowStatus.Finished);
-        await Assert.That(lines).IsEquivalentTo(new[] { "Before Complete" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(lines).IsEquivalentTo(new[] { "Before Complete" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(lines).DoesNotContain("After Complete (should not execute)");
     }
 

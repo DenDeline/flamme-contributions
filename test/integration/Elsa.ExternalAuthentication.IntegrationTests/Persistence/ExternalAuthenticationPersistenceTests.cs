@@ -35,6 +35,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
     private MemoryUserStore _userStore = null!;
     private StoreBasedUserProvider _userProvider = null!;
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
     public async Task InitializeAsync()
     {
         _database = new PostgreSqlTestDatabase();
@@ -75,6 +76,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
             _clock,
             NullLogger<EFCoreExternalIdentityProvisioner>.Instance);
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
     [Test]
     public async Task PersistsEveryDurableExternalAuthenticationAggregateWithTheRequiredIndexes()
     {
@@ -102,6 +104,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
         await Assert.That(refreshToken.GetIndexes()).Contains(x => x.IsUnique && x.Properties.Select(p => p.Name).SequenceEqual([nameof(PersistedExternalAuthenticationRefreshToken.Hash)]));
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
     [Test]
     public async Task PostgreSqlInitialMigrationCreatesTheOptionalRefreshTokenTable()
     {
@@ -174,10 +177,10 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
         // a store that accepted and ignored the filter would silently widen their reach.
         await Assert.That(tenantScoped.Items.Select(x => x.Id).ToArray()).IsEquivalentTo(
             ["connection-a"],
-            TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(hostScoped.Items.Select(x => x.Id).ToArray()).IsEquivalentTo(
             ["connection-host"],
-            TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(unscoped.Items.Count).IsEqualTo(3);
     }
 
@@ -324,6 +327,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
         await Assert.That(persisted!.LastSignedInAt).IsEqualTo(signInTimes.Max());
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
     [Test]
     public async Task ProvisionerRemovesTheJustInTimeUserThatLosesTheLinkRace()
     {
@@ -725,6 +729,7 @@ public sealed class ExternalAuthenticationPersistenceTests : IAsyncInitializer, 
         await Assert.That(durableLink.UserId).IsEqualTo("user-a");
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run database test exercises EF schema creation or migrations; production AOT support is tracked separately.")]
     [Test]
     public async Task DurableConcurrentReplacementUsesTheOldLinkIdAsAnAtomicGuard()
     {

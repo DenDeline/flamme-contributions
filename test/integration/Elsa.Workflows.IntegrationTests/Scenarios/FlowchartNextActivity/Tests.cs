@@ -20,7 +20,7 @@ public class FlowchartNextActivityTests : IAsyncDisposable
     {
         await _fixture.RunWorkflowAsync<FlowchartWorkflow>();
         var lines = _fixture.CapturingTextWriter.Lines.ToList();
-        await Assert.That(lines).IsEquivalentTo(["Line 1"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(lines).IsEquivalentTo(["Line 1"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -109,7 +109,7 @@ public class FlowchartNextActivityTests : IAsyncDisposable
         await Assert.That(lines).IsEquivalentTo(new[]
         {
             "A", "B", "D", "E", "A", "B", "E", "E", "F"
-        }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -177,7 +177,7 @@ public class FlowchartNextActivityTests : IAsyncDisposable
         await Assert.That(lines).IsEquivalentTo(new[]
         {
             "A", "B", "C", "D", "E"
-        }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -256,7 +256,7 @@ public class FlowchartNextActivityTests : IAsyncDisposable
         await Assert.That(lines).IsEquivalentTo(new[]
         {
             "A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D"
-        }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -328,7 +328,7 @@ public class FlowchartNextActivityTests : IAsyncDisposable
         await Assert.That(lines).IsEquivalentTo(new[]
         {
             "A", "A", "A", "B"
-        }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -428,7 +428,7 @@ public class FlowchartNextActivityTests : IAsyncDisposable
         var result = await _fixture.RunWorkflowAsync(workflow, options);
         var lines = _fixture.CapturingTextWriter.Lines.ToList();
         await Assert.That(result.WorkflowState.SubStatus).IsEqualTo(WorkflowSubStatus.Finished);
-        await Assert.That(lines).IsEquivalentTo(expectedLines, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(lines).IsEquivalentTo(expectedLines, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     public static IEnumerable<TestDataRow<Func<(bool DecisionResult, FlowJoinMode JoinMode, string[] ExpectedLines)>>> CounterBasedJoinCases()

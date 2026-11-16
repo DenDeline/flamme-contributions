@@ -79,7 +79,7 @@ public class WriteFileHttpResponseTests
         // Assert
         await Assert.That(context.IsCompleted).IsTrue();
         var responseBytes = GetResponseBytes(httpContext);
-        await Assert.That(responseBytes).IsEquivalentTo(testBytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(responseBytes).IsEquivalentTo(testBytes, EqualityComparer<byte>.Default, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -477,7 +477,7 @@ public class WriteFileHttpResponseTests
 
     private static void RegisterZipManager(IServiceCollection services)
     {
-        var zipManagerType = typeof(WriteFileHttpResponse).Assembly.GetType("Elsa.Http.Services.ZipManager");
+        var zipManagerType = Type.GetType("Elsa.Http.Services.ZipManager, Elsa.Http");
         if (zipManagerType != null)
         {
             services.AddSingleton(zipManagerType, zipManagerType);

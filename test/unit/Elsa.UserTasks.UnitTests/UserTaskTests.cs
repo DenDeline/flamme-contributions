@@ -113,7 +113,7 @@ public class UserTaskTests
 
         var page = await repository.QueryAsync(new() { TenantId = "tenant", Sort = "priority", Descending = true, Limit = 10 });
 
-        await Assert.That(page.Items.Select(x => x.Id)).IsEquivalentTo(["task-a", "task-b"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(page.Items.Select(x => x.Id)).IsEquivalentTo(["task-a", "task-b"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -159,7 +159,7 @@ public class UserTaskTests
         var created = await repository.QueryAsync(new() { TenantId = "tenant", Sort = "created", Limit = 10 });
         var completed = await repository.QueryAsync(new() { TenantId = "tenant", Sort = "completed", Limit = 10 });
 
-        await Assert.That(completed.Items.Select(x => x.Id)).IsEquivalentTo(created.Items.Select(x => x.Id), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(completed.Items.Select(x => x.Id)).IsEquivalentTo(created.Items.Select(x => x.Id), StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -286,7 +286,7 @@ public class UserTaskTests
         var summary = await UserTaskModelMapper.ToSummaryAsync(task, candidate, _fixture.Policy);
 
         await Assert.That(summary.CandidateSummary).IsEqualTo("2 users");
-        await Assert.That(JsonSerializer.Serialize(summary)).DoesNotContain(peer.Subject.Id);
+        await Assert.That(JsonSerializer.Serialize(summary, TestJsonSerializerContext.Default.UserTaskSummary)).DoesNotContain(peer.Subject.Id);
         await Assert.That(summary.HealthSeverity).IsNull();
         await Assert.That(summary.HealthCode).IsNull();
     }
@@ -318,7 +318,7 @@ public class UserTaskTests
         var afterClaim = await Assert.That(await _fixture.Manager.GetEventsAsync(UserTaskTestFixture.TenantId, task.Id, null, 50, candidate)).IsNotNull();
         await Assert.That(afterClaim.Items).IsNotEmpty();
         // Actor identifiers never reach the audit projection; only a display name may.
-        await Assert.That(JsonSerializer.Serialize(afterClaim)).DoesNotContain(candidate.Subject.Id);
+        await Assert.That(JsonSerializer.Serialize(afterClaim, TestJsonSerializerContext.Default.UserTaskEventsResult)).DoesNotContain(candidate.Subject.Id);
     }
 
     [Test]
@@ -345,7 +345,7 @@ public class UserTaskTests
         await Assert.That(fields["pin"].Value).IsNull();
         await Assert.That(fields["iban"].CanReveal).IsTrue();
         await Assert.That(fields["pin"].CanReveal).IsFalse();
-        await Assert.That(JsonSerializer.Serialize(detail.Form)).DoesNotContain("NL00BANK");
+        await Assert.That(JsonSerializer.Serialize(detail.Form, TestJsonSerializerContext.Default.UserTaskFormProjection)).DoesNotContain("NL00BANK");
 
         var revisionBeforeReveal = detail.Revision;
         var revealed = await fixture.Manager.RevealFieldAsync(UserTaskTestFixture.TenantId, task.Id, "iban", actor);
@@ -360,7 +360,7 @@ public class UserTaskTests
         // would conflict for no reason.
         await Assert.That(afterReveal!.Revision).IsEqualTo(revisionBeforeReveal);
         await Assert.That(afterReveal.Events).Contains(x => x.EventType == "FieldRevealed");
-        await Assert.That(JsonSerializer.Serialize(afterReveal.Events)).DoesNotContain("NL00BANK");
+        await Assert.That(JsonSerializer.Serialize(afterReveal.Events, TestJsonSerializerContext.Default.ListUserTaskEvent)).DoesNotContain("NL00BANK");
 
         var completion = await fixture.Manager.CompleteAsync(UserTaskTestFixture.TenantId, task.Id,
             new(revisionBeforeReveal, "complete-1", "Approve", payload), actor);

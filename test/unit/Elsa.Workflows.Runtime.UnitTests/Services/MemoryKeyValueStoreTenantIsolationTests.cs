@@ -72,7 +72,7 @@ public class MemoryKeyValueStoreTenantIsolationTests
             Take = 3
         }, CancellationToken.None)).ToList();
 
-        await Assert.That(found.Select(x => x.Key).ToList()).IsEquivalentTo(["kv-a", "kv-a2", "kv-star"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(found.Select(x => x.Key).ToList()).IsEquivalentTo(["kv-a", "kv-a2", "kv-star"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(found).DoesNotContain(x => x.Key == "kv-b");
     }
 
@@ -189,7 +189,7 @@ public class MemoryKeyValueStoreTenantIsolationTests
         var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
             tenantB.SaveAsync(Pair("shared", "b", "tenant-b"), CancellationToken.None));
 
-        await Assert.That(ex.Message).Contains("shared");
+        await Assert.That(ex!.Message).Contains("shared");
         var remaining = await tenantA.FindAsync(new KeyValueFilter { Key = "shared" }, CancellationToken.None);
         await Assert.That(remaining).IsNotNull();
         await Assert.That(remaining.SerializedValue).IsEqualTo("a");

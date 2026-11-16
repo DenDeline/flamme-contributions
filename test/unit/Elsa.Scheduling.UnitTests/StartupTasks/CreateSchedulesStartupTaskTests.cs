@@ -141,7 +141,7 @@ public class CreateSchedulesStartupTaskTests
         await Assert.That(purgedFilter.BookmarkIds?.OrderBy(x => x, StringComparer.Ordinal).ToArray()).IsEquivalentTo(new[]
             {
                 "cancelled-bookmark", "empty-instance-bookmark", "faulted-bookmark", "finished-bookmark", "missing-bookmark"
-            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -168,7 +168,7 @@ public class CreateSchedulesStartupTaskTests
             Arg.Any<CancellationToken>()).WasCalled(Times.Exactly(1));
         Mock.Get(_bookmarkManager).DeleteManyAsync(Arg.Any<BookmarkFilter>(), Arg.Any<CancellationToken>()).WasCalled(Times.Exactly(1));
         await Assert.That(purgedFilter).IsNotNull();
-        await Assert.That(purgedFilter.BookmarkIds).IsEquivalentTo(["missing-bookmark"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(purgedFilter.BookmarkIds).IsEquivalentTo(["missing-bookmark"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
@@ -211,7 +211,7 @@ public class CreateSchedulesStartupTaskTests
         {
             await Assert.That(filter.BookmarkIds!).HasSingleItem();
         }
-        await Assert.That(purgedFilters.SelectMany(x => x.BookmarkIds!).OrderBy(x => x, StringComparer.Ordinal)).IsEquivalentTo(["orphan-1", "orphan-2"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(purgedFilters.SelectMany(x => x.BookmarkIds!).OrderBy(x => x, StringComparer.Ordinal)).IsEquivalentTo(["orphan-1", "orphan-2"], StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]
