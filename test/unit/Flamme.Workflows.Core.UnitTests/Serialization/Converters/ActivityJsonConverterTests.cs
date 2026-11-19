@@ -46,6 +46,19 @@ public sealed class ActivityJsonConverterTests
     }
 
     [Test]
+    public async Task ExplicitUnknownMajorPreservesTheMissingContract()
+    {
+        var registry = CreateActivityRegistry(WriteLineActivityTypeName, WriteLineActivity);
+        Mock.Get(registry).Find(NotFoundActivityTypeName).Returns(new ActivityDescriptor());
+
+        var result = Execute(CreateSut(registry), """{ "type": "Console.WriteLine", "version": 42 }""");
+
+        var missing = await Assert.That(result).IsTypeOf<NotFoundActivity>();
+        await Assert.That(missing!.MissingTypeName).IsEqualTo("Console.WriteLine");
+        await Assert.That(missing.MissingTypeVersion).IsEqualTo(42);
+    }
+
+    [Test]
     public async Task When_DeserializeUnknownActivity_Then_ReturnsNotFoundActivity()
     {
         // Arrange
@@ -120,6 +133,18 @@ public sealed class ActivityJsonConverterTests
         await Assert.That(result).IsSameReferenceAs(WorkflowAsActivity);
     }
 
+    [Test]
+    public async Task ExactChildRevisionTakesPrecedenceOverItsCachedVersion()
+    {
+        var registry = CreateActivityRegistry_FindByCustomProperty(
+            WorkflowDefinitionVersionIdCustomPropertyName, WorkflowAsActivityDefinitionVersionId);
+        var json = $$"""{ "type": "Test-SubWorkflow", "version": 42, "workflowDefinitionVersionId": "{{WorkflowAsActivityDefinitionVersionId}}" }""";
+
+        var result = Execute(CreateSut(registry), json);
+
+        await Assert.That(result).IsSameReferenceAs(WorkflowAsActivity);
+    }
+
     static IActivity? Execute(ActivityJsonConverter sut, string json) =>
         JsonSerializer.Deserialize(json, TestJsonTypeInfo.FromConverter<IActivity>(GetSerializerOptions(sut)));
 
@@ -189,7 +214,7 @@ public sealed class ActivityJsonConverterTests
      "id": "b54b024aa7469287",
      "nodeId": "Workflow1:51139b0cc83d3b07:b54b024aa7469287",
      "name": "WriteLine1",
-     "type": "Elsa.WriteLine",
+     "type": "Console.WriteLine",
      "version": 1,
      "customProperties": {
          "canStartWorkflow": false,
@@ -234,7 +259,7 @@ public sealed class ActivityJsonConverterTests
     "id": "b54b024aa7469287",
     "nodeId": "Workflow1:51139b0cc83d3b07:b54b024aa7469287",
     "name": "WriteLine1",
-    "type": "Elsa.WriteLine",
+    "type": "Console.WriteLine",
     "customProperties": {
         "canStartWorkflow": false,
         "runAsynchronously": false
