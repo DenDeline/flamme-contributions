@@ -1,0 +1,3 @@
+namespace Flamme.Workflows.Pipelines.WorkflowExecution;
+
+public delegate ValueTask WorkflowMiddlewareDelegate(WorkflowExecutionContext context);

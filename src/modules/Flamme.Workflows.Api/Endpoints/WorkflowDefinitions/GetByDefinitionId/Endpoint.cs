@@ -1,0 +1,42 @@
+using Flamme.Authorization;
+using Flamme.Abstractions;
+using Flamme.Common.Models;
+using Flamme.Workflows.Management;
+using Flamme.Workflows.Models;
+using JetBrains.Annotations;
+using Microsoft.AspNetCore.Http;
+
+namespace Flamme.Workflows.Api.Endpoints.WorkflowDefinitions.GetByDefinitionId;
+
+[PublicAPI]
+internal class GetByDefinitionId(IWorkflowDefinitionStore store, IWorkflowDefinitionLinker linker, IMaterializerRegistry materializerRegistry) : FlammeEndpoint<Request>
+{
+    public override void Configure()
+    {
+        Get("/workflow-definitions/by-definition-id/{definitionId}", "/workflow-definitions/{definitionId}");
+        RequirePermission(Flamme.Workflows.Api.Permissions.WorkflowPermissions.Definitions, CoreVerbs.View);
+    }
+
+    public override async Task HandleAsync(Request request, CancellationToken cancellationToken)
+    {
+        var versionOptions = request.VersionOptions != null ? VersionOptions.FromString(request.VersionOptions) : VersionOptions.Latest;
+        var filter = WorkflowDefinitionHandle.ByDefinitionId(request.DefinitionId, versionOptions).ToFilter();
+        var definition = await store.FindAsync(filter, cancellationToken);
+
+        if (definition == null)
+        {
+            await Send.NotFoundAsync(cancellationToken);
+            return;
+        }
+
+        if (!materializerRegistry.IsMaterializerAvailable(definition.MaterializerName))
+        {
+            AddError($"The workflow materializer '{definition.MaterializerName}' is not available. The materializer may be disabled or not registered.");
+            await Send.ErrorsAsync(StatusCodes.Status422UnprocessableEntity, cancellationToken);
+            return;
+        }
+
+        var model = await linker.MapAsync(definition, cancellationToken);
+        await Send.OkAsync(model, cancellationToken);
+    }
+}

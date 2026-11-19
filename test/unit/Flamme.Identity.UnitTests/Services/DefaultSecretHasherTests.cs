@@ -1,0 +1,403 @@
+using Flamme.Testing.Shared.Multitenancy;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using Flamme.Common.Services;
+using Flamme.Identity.Contracts;
+using Flamme.Identity.Entities;
+using Flamme.Identity.Models;
+using Flamme.Identity.Providers;
+using Flamme.Identity.Services;
+using System.Threading.Tasks;
+
+namespace Flamme.Identity.UnitTests.Services;
+
+public class DefaultSecretHasherTests
+{
+    private readonly DefaultSecretHasher _hasher = new();
+
+    [Test]
+    public async Task HashSecret_GeneratesVersionedPbkdf2Hash()
+    {
+        var hashedSecret = _hasher.HashSecret("secret");
+
+        await Assert.That(Encoding.UTF8.GetString(hashedSecret.Secret)).StartsWith("pbkdf2-sha256$600000$");
+        await Assert.That(hashedSecret.Salt.Length).IsEqualTo(32);
+        await Assert.That(hashedSecret.EncodeSalt().Length).IsEqualTo(44);
+        await Assert.That(_hasher.VerifySecret("secret", hashedSecret, out var needsRehash)).IsTrue();
+        await Assert.That(needsRehash).IsFalse();
+    }
+
+    [Test]
+    public async Task VerifySecret_ParsesPbkdf2EnvelopeUsingInvariantCulture()
+    {
+        var hashedSecret = CreatePbkdf2Hash("secret", 1);
+        using var _ = new CultureScope("ar-SA");
+
+        var verified = _hasher.VerifySecret("secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsTrue();
+        await Assert.That(needsRehash).IsTrue();
+    }
+
+    [Test]
+    public async Task GenerateSalt_GeneratesExpectedSalt()
+    {
+        var salt = _hasher.GenerateSalt();
+
+        await Assert.That(salt.Length).IsEqualTo(32);
+        await Assert.That(Convert.ToBase64String(salt).Length).IsEqualTo(44);
+    }
+
+    [Test]
+    public async Task VerifySecret_AcceptsLegacySha256HashAndRequestsRehash()
+    {
+        var hashedSecret = CreateLegacyHash("secret");
+
+        var verified = _hasher.VerifySecret("secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsTrue();
+        await Assert.That(needsRehash).IsTrue();
+    }
+
+    [Test]
+    public async Task VerifySecret_WithWrongPasswordAndLowerIterationCount_DoesNotRequestRehash()
+    {
+        var hashedSecret = CreatePbkdf2Hash("secret", 1);
+
+        var verified = _hasher.VerifySecret("wrong-secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsFalse();
+        await Assert.That(needsRehash).IsFalse();
+    }
+
+    [Test]
+    public async Task VerifySecret_WithCorrectPasswordAndLowerIterationCount_RequestsRehash()
+    {
+        var hashedSecret = CreatePbkdf2Hash("secret", 1);
+
+        var verified = _hasher.VerifySecret("secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsTrue();
+        await Assert.That(needsRehash).IsTrue();
+    }
+
+    [Test]
+    public async Task VerifySecret_RejectsPbkdf2HashWithExcessiveIterations()
+    {
+        var salt = _hasher.GenerateSalt();
+        var storedHash = Encoding.UTF8.GetBytes("pbkdf2-sha256$999999999$" + Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var hashedSecret = HashedSecret.FromBytes(storedHash, salt);
+
+        var verified = _hasher.VerifySecret("secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsFalse();
+        await Assert.That(needsRehash).IsFalse();
+    }
+
+    [Test]
+    public async Task VerifySecret_RejectsPbkdf2HashWithInvalidKeyLength()
+    {
+        var salt = _hasher.GenerateSalt();
+        var storedHash = Encoding.UTF8.GetBytes("pbkdf2-sha256$600000$" + Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)));
+        var hashedSecret = HashedSecret.FromBytes(storedHash, salt);
+
+        var verified = _hasher.VerifySecret("secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsFalse();
+        await Assert.That(needsRehash).IsFalse();
+    }
+
+    [Test]
+    public async Task VerifySecret_RejectsMalformedLegacyHashWithInvalidKeyLength()
+    {
+        var hashedSecret = HashedSecret.FromBytes(RandomNumberGenerator.GetBytes(16), _hasher.GenerateSalt());
+
+        var verified = _hasher.VerifySecret("secret", hashedSecret, out var needsRehash);
+
+        await Assert.That(verified).IsFalse();
+        await Assert.That(needsRehash).IsFalse();
+    }
+
+    [Test]
+    public async Task ValidateAsync_RehashesLegacyUserPassword()
+    {
+        var userStore = new MemoryUserStore(new MemoryStore<User>(), TestTenantAccessor.Default);
+        var legacyHash = CreateLegacyHash("secret");
+        await userStore.SaveAsync(new User
+        {
+            Id = "user-1",
+            Name = "alice",
+            HashedPassword = legacyHash.EncodeSecret(),
+            HashedPasswordSalt = legacyHash.EncodeSalt()
+        });
+        var rehashingHasher = new RehashingSecretHasher("secret");
+        var validator = new DefaultUserCredentialsValidator(new StoreBasedUserProvider(userStore), userStore, rehashingHasher);
+
+        var user = await validator.ValidateAsync("alice", "secret");
+        var reloadedUser = await userStore.FindAsync(new UserFilter { Name = "alice" });
+
+        await Assert.That(user).IsNotNull();
+        await Assert.That(reloadedUser).IsNotNull();
+        await Assert.That(reloadedUser.HashedPassword).IsEqualTo(rehashingHasher.UpgradedSecret.EncodeSecret());
+        await Assert.That(reloadedUser.HashedPasswordSalt).IsEqualTo(rehashingHasher.UpgradedSecret.EncodeSalt());
+    }
+
+    [Test]
+    public async Task ValidateAsync_RehashesLegacyApplicationApiKey()
+    {
+        var apiKeyGenerator = new DefaultApiKeyGeneratorAndParser();
+        var apiKey = apiKeyGenerator.Generate("client-1");
+        var applicationStore = new MemoryApplicationStore(new MemoryStore<Application>(), TestTenantAccessor.Default);
+        var legacyHash = CreateLegacyHash(apiKey);
+        await applicationStore.SaveAsync(new Application
+        {
+            Id = "app-1",
+            ClientId = "client-1",
+            Name = "Client 1",
+            HashedApiKey = legacyHash.EncodeSecret(),
+            HashedApiKeySalt = legacyHash.EncodeSalt(),
+            HashedClientSecret = "",
+            HashedClientSecretSalt = ""
+        });
+        var applicationProvider = new StoreBasedApplicationProvider(applicationStore);
+        var rehashingHasher = new RehashingSecretHasher(apiKey);
+        var validator = new DefaultApplicationCredentialsValidator(apiKeyGenerator, applicationProvider, applicationStore, rehashingHasher);
+
+        var application = await validator.ValidateAsync(apiKey);
+        var reloadedApplication = await applicationStore.FindAsync(new ApplicationFilter { ClientId = "client-1" });
+
+        await Assert.That(application).IsNotNull();
+        await Assert.That(reloadedApplication).IsNotNull();
+        await Assert.That(reloadedApplication.HashedApiKey).IsEqualTo(rehashingHasher.UpgradedSecret.EncodeSecret());
+        await Assert.That(reloadedApplication.HashedApiKeySalt).IsEqualTo(rehashingHasher.UpgradedSecret.EncodeSalt());
+    }
+
+    [Test]
+    public async Task ValidateAsync_ReturnsUserWhenLegacyPasswordRehashSaveFails()
+    {
+        var legacyHash = CreateLegacyHash("secret");
+        var user = new User
+        {
+            Id = "user-1",
+            Name = "alice",
+            HashedPassword = legacyHash.EncodeSecret(),
+            HashedPasswordSalt = legacyHash.EncodeSalt()
+        };
+        var userStore = new FailingUserStore(user, new TimeoutException("Save timed out."));
+        var validator = new DefaultUserCredentialsValidator(new StoreBasedUserProvider(userStore), userStore, new RehashingSecretHasher("secret"));
+
+        var validatedUser = await validator.ValidateAsync("alice", "secret");
+
+        await Assert.That(validatedUser).IsSameReferenceAs(user);
+        await Assert.That(user.HashedPassword).IsEqualTo(legacyHash.EncodeSecret());
+        await Assert.That(user.HashedPasswordSalt).IsEqualTo(legacyHash.EncodeSalt());
+    }
+
+    [Test]
+    public async Task ValidateAsync_WithOldUserValidatorConstructor_ReturnsUserWithoutPersistingRehash()
+    {
+        var legacyHash = CreateLegacyHash("secret");
+        var encodedLegacyHash = legacyHash.EncodeSecret();
+        var user = new User
+        {
+            Id = "user-1",
+            Name = "alice",
+            HashedPassword = encodedLegacyHash,
+            HashedPasswordSalt = legacyHash.EncodeSalt()
+        };
+        var validator = new DefaultUserCredentialsValidator(new StaticUserProvider(user), new RehashingSecretHasher("secret"));
+
+        var validatedUser = await validator.ValidateAsync("alice", "secret");
+
+        await Assert.That(validatedUser).IsSameReferenceAs(user);
+        await Assert.That(user.HashedPassword).IsEqualTo(encodedLegacyHash);
+    }
+
+    [Test]
+    public async Task ValidateAsync_ReturnsApplicationWhenLegacyApiKeyRehashSaveFails()
+    {
+        var apiKeyGenerator = new DefaultApiKeyGeneratorAndParser();
+        var apiKey = apiKeyGenerator.Generate("client-1");
+        var legacyHash = CreateLegacyHash(apiKey);
+        var application = new Application
+        {
+            Id = "app-1",
+            ClientId = "client-1",
+            Name = "Client 1",
+            HashedApiKey = legacyHash.EncodeSecret(),
+            HashedApiKeySalt = legacyHash.EncodeSalt(),
+            HashedClientSecret = "",
+            HashedClientSecretSalt = ""
+        };
+        var applicationStore = new FailingApplicationStore(application);
+        var applicationProvider = new StoreBasedApplicationProvider(applicationStore);
+        var validator = new DefaultApplicationCredentialsValidator(apiKeyGenerator, applicationProvider, applicationStore, new RehashingSecretHasher(apiKey));
+
+        var validatedApplication = await validator.ValidateAsync(apiKey);
+
+        await Assert.That(validatedApplication).IsSameReferenceAs(application);
+        await Assert.That(application.HashedApiKey).IsEqualTo(legacyHash.EncodeSecret());
+        await Assert.That(application.HashedApiKeySalt).IsEqualTo(legacyHash.EncodeSalt());
+    }
+
+    [Test]
+    public async Task ValidateAsync_WithOldApplicationValidatorConstructor_ReturnsApplicationWithoutPersistingRehash()
+    {
+        var apiKeyGenerator = new DefaultApiKeyGeneratorAndParser();
+        var apiKey = apiKeyGenerator.Generate("client-1");
+        var legacyHash = CreateLegacyHash(apiKey);
+        var encodedLegacyHash = legacyHash.EncodeSecret();
+        var application = new Application
+        {
+            Id = "app-1",
+            ClientId = "client-1",
+            Name = "Client 1",
+            HashedApiKey = encodedLegacyHash,
+            HashedApiKeySalt = legacyHash.EncodeSalt(),
+            HashedClientSecret = "",
+            HashedClientSecretSalt = ""
+        };
+        var applicationProvider = new StaticApplicationProvider(application);
+        var validator = new DefaultApplicationCredentialsValidator(apiKeyGenerator, applicationProvider, new RehashingSecretHasher(apiKey));
+
+        var validatedApplication = await validator.ValidateAsync(apiKey);
+
+        await Assert.That(validatedApplication).IsSameReferenceAs(application);
+        await Assert.That(application.HashedApiKey).IsEqualTo(encodedLegacyHash);
+    }
+
+    private static HashedSecret CreateLegacyHash(string secret)
+    {
+        var salt = RandomNumberGenerator.GetBytes(32);
+        var secretBytes = Encoding.UTF8.GetBytes(secret);
+        var hash = SHA256.HashData(secretBytes.Concat(salt).ToArray());
+        return HashedSecret.FromBytes(hash, salt);
+    }
+
+    private static HashedSecret CreatePbkdf2Hash(string secret, int iterationCount)
+    {
+        var salt = RandomNumberGenerator.GetBytes(32);
+        var secretBytes = Encoding.UTF8.GetBytes(secret);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(secretBytes, salt, iterationCount, HashAlgorithmName.SHA256, 32);
+        var envelope = Encoding.UTF8.GetBytes($"pbkdf2-sha256${iterationCount.ToString(CultureInfo.InvariantCulture)}${Convert.ToBase64String(hash)}");
+        return HashedSecret.FromBytes(envelope, salt);
+    }
+
+    private sealed class FailingUserStore(User user, Exception? exception = null) : IUserStore
+    {
+        private readonly User _user = user;
+        private readonly Exception _exception = exception ?? new InvalidOperationException("Save failed.");
+
+        public Task SaveAsync(User user, CancellationToken cancellationToken = default) => throw _exception;
+
+        public Task DeleteAsync(UserFilter filter, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        public Task<IEnumerable<User>> FindManyAsync(UserFilter filter, CancellationToken cancellationToken = default)
+        {
+            var users = filter.Apply(new[] { _user }.AsQueryable()).ToList();
+            return Task.FromResult<IEnumerable<User>>(users);
+        }
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        public Task<User?> FindAsync(UserFilter filter, CancellationToken cancellationToken = default)
+        {
+            var user = filter.Apply(new[] { _user }.AsQueryable()).FirstOrDefault();
+            return Task.FromResult(user);
+        }
+    }
+
+    private sealed class RehashingSecretHasher(string expectedSecret) : ISecretHasher
+    {
+        public HashedSecret UpgradedSecret { get; } = HashedSecret.FromBytes(Encoding.UTF8.GetBytes("upgraded-secret"), Encoding.UTF8.GetBytes("upgraded-salt"));
+
+        public HashedSecret HashSecret(string secret) => UpgradedSecret;
+
+        public HashedSecret HashSecret(string secret, byte[] salt) => UpgradedSecret;
+
+        public bool VerifySecret(string clearTextSecret, string secret, string salt) => clearTextSecret == expectedSecret;
+
+        public bool VerifySecret(string clearTextSecret, string secret, string salt, out bool needsRehash)
+        {
+            needsRehash = clearTextSecret == expectedSecret;
+            return clearTextSecret == expectedSecret;
+        }
+
+        public bool VerifySecret(string clearTextSecret, HashedSecret hashedSecret) => clearTextSecret == expectedSecret;
+
+        public bool VerifySecret(string clearTextSecret, HashedSecret hashedSecret, out bool needsRehash)
+        {
+            needsRehash = clearTextSecret == expectedSecret;
+            return clearTextSecret == expectedSecret;
+        }
+
+        public byte[] HashSecret(byte[] secret, byte[] salt) => UpgradedSecret.Secret;
+
+        public byte[] GenerateSalt(int saltSize = 32) => UpgradedSecret.Salt;
+    }
+
+    private sealed class FailingApplicationStore(Application application) : IApplicationStore
+    {
+        private readonly Application _application = application;
+
+        public Task SaveAsync(Application application, CancellationToken cancellationToken = default) => throw new InvalidOperationException("Save failed.");
+
+        public Task DeleteAsync(ApplicationFilter filter, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        public Task<Application?> FindAsync(ApplicationFilter filter, CancellationToken cancellationToken = default)
+        {
+            var application = filter.Apply(new[] { _application }.AsQueryable()).FirstOrDefault();
+            return Task.FromResult(application);
+        }
+    }
+
+    private sealed class StaticUserProvider(User user) : IUserProvider
+    {
+        private readonly User _user = user;
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        public Task<User?> FindAsync(UserFilter filter, CancellationToken cancellationToken = default)
+        {
+            var user = filter.Apply(new[] { _user }.AsQueryable()).FirstOrDefault();
+            return Task.FromResult(user);
+        }
+    }
+
+    private sealed class StaticApplicationProvider(Application application) : IApplicationProvider
+    {
+        private readonly Application _application = application;
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-only fixture uses LINQ-to-Objects to exercise the production IQueryable filtering contract.")]
+        public Task<Application?> FindAsync(ApplicationFilter filter, CancellationToken cancellationToken = default)
+        {
+            var application = filter.Apply(new[] { _application }.AsQueryable()).FirstOrDefault();
+            return Task.FromResult(application);
+        }
+    }
+
+    private sealed class CultureScope : IDisposable
+    {
+        private readonly CultureInfo _currentCulture = CultureInfo.CurrentCulture;
+        private readonly CultureInfo _currentUICulture = CultureInfo.CurrentUICulture;
+
+        public CultureScope(string cultureName)
+        {
+            var culture = CultureInfo.GetCultureInfo(cultureName);
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+        }
+
+        public void Dispose()
+        {
+            CultureInfo.CurrentCulture = _currentCulture;
+            CultureInfo.CurrentUICulture = _currentUICulture;
+        }
+    }
+}

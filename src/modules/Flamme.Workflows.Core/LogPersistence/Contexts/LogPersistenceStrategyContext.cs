@@ -1,0 +1,3 @@
+namespace Flamme.Workflows.LogPersistence;
+
+public record LogPersistenceStrategyContext(CancellationToken CancellationToken);

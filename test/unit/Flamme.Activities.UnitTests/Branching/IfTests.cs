@@ -1,0 +1,310 @@
+using Flamme.Extensions;
+using Flamme.Testing.Shared;
+using Flamme.Workflows;
+using Flamme.Workflows.Exceptions;
+using System.Threading.Tasks;
+
+namespace Flamme.Activities.UnitTests.Branching;
+
+public class IfTests
+{
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Should_Set_Result_To_Condition_Value_Regardless_Of_Branch_Presence(bool conditionValue)
+    {
+        // Arrange - Test with no branches to verify result is independent of branch activities
+        var ifActivity = new If(() => conditionValue);
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsEqualTo(conditionValue);
+    }
+
+    [Test]
+    public async Task Should_Schedule_Then_Branch_When_Condition_Is_True_And_Then_Branch_Exists()
+    {
+        // Arrange
+        var ifActivity = new If(() => true);
+        var thenActivity = new WriteLine("then executed");
+        ifActivity.Then = thenActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsTrue();
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsTrue().Because("Then branch should be scheduled when condition is true");
+    }
+
+    [Test]
+    public async Task Should_Schedule_Else_Branch_When_Condition_Is_False_And_Else_Branch_Exists()
+    {
+        // Arrange
+        var ifActivity = new If(() => false);
+        var elseActivity = new WriteLine("else executed");
+        ifActivity.Else = elseActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsFalse();
+        await Assert.That(context.HasScheduledActivity(elseActivity)).IsTrue().Because("Else branch should be scheduled when condition is false");
+    }
+
+    [Test]
+    public async Task Should_Schedule_Only_Then_Branch_When_Condition_Is_True_And_Both_Branches_Exist()
+    {
+        // Arrange
+        var ifActivity = new If(() => true);
+        var thenActivity = new WriteLine("then executed");
+        var elseActivity = new WriteLine("else executed");
+        ifActivity.Then = thenActivity;
+        ifActivity.Else = elseActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsTrue();
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsTrue().Because("Then branch should be scheduled when condition is true");
+        await Assert.That(context.HasScheduledActivity(elseActivity)).IsFalse().Because("Else branch should not be scheduled when condition is true");
+    }
+
+    [Test]
+    public async Task Should_Schedule_Only_Else_Branch_When_Condition_Is_False_And_Both_Branches_Exist()
+    {
+        // Arrange
+        var ifActivity = new If(() => false);
+        var thenActivity = new WriteLine("then executed");
+        var elseActivity = new WriteLine("else executed");
+        ifActivity.Then = thenActivity;
+        ifActivity.Else = elseActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsFalse();
+        await Assert.That(context.HasScheduledActivity(elseActivity)).IsTrue().Because("Else branch should be scheduled when condition is false");
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsFalse().Because("Then branch should not be scheduled when condition is false");
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Should_Not_Throw_When_Only_Then_Branch_Is_Present(bool conditionValue)
+    {
+        // Arrange
+        var ifActivity = new If(() => conditionValue)
+        {
+            Then = new WriteLine("then branch")
+        };
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsEqualTo(conditionValue);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Should_Not_Throw_When_Only_Else_Branch_Is_Present(bool conditionValue)
+    {
+        // Arrange
+        var ifActivity = new If(() => conditionValue)
+        {
+            Else = new WriteLine("else branch")
+        };
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsEqualTo(conditionValue);
+    }
+
+    [Test]
+    public async Task Should_Not_Schedule_Then_Branch_When_Condition_Is_False_And_Only_Then_Branch_Exists()
+    {
+        // Arrange
+        var ifActivity = new If(() => false);
+        var thenActivity = new WriteLine("then executed");
+        ifActivity.Then = thenActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsFalse();
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsFalse().Because("Then branch should not be scheduled when condition is false");
+    }
+
+    [Test]
+    public async Task Should_Not_Schedule_Else_Branch_When_Condition_Is_True_And_Only_Else_Branch_Exists()
+    {
+        // Arrange
+        var ifActivity = new If(() => true);
+        var elseActivity = new WriteLine("else executed");
+        ifActivity.Else = elseActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsTrue();
+        await Assert.That(context.HasScheduledActivity(elseActivity)).IsFalse().Because("Else branch should not be scheduled when condition is true");
+    }
+    
+    [Test]
+    public async Task Should_Return_False_When_Condition_Is_Not_Set()
+    {
+        // Arrange
+        var ifActivity = new If(); // no condition provided
+        var thenActivity = new WriteLine("then");
+        ifActivity.Then = thenActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+        
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsFalse().Because("If activity should return false when no condition is set");
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsFalse().Because("Then branch should not be scheduled when condition defaults to false");
+    }
+    
+    [Test]
+    public async Task Should_Bubble_Exception_From_Condition_And_Not_Schedule_Any_Branch()
+    {
+        // Arrange
+        var ifActivity = new If(() =>  throw new ApplicationException("boom"));
+        var thenActivity = new WriteLine("then");
+        var elseActivity = new WriteLine("else");
+        ifActivity.Then = thenActivity;
+        ifActivity.Else = elseActivity;
+
+        // Act - Throwing any kind of exception in the condition results in an InputEvaluationException
+        var ex = (await Assert.ThrowsExactlyAsync<InputEvaluationException>(() => ExecuteAsync(ifActivity)))!;
+
+        // Assert
+        await Assert.That(ex.Message).Contains("Failed to evaluate");
+    }
+    
+    [Test]
+    public async Task Should_Evaluate_Condition_Exactly_Once()
+    {
+        // Arrange
+        var count = 0;
+        var ifActivity = new If(() => { count++; return true; });
+        var thenActivity = new WriteLine("then");
+        ifActivity.Then = thenActivity;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        await Assert.That(count).IsEqualTo(1);
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsTrue();
+    }
+    
+    [Test]
+    public async Task Should_Use_Latest_Captured_State_When_Evaluating_Condition()
+    {
+        // Arrange
+        var flag = false;
+        // ReSharper disable once AccessToModifiedClosure
+        var ifActivity = new If(() => flag);
+        var thenActivity = new WriteLine("then");
+        var elseActivity = new WriteLine("else");
+        ifActivity.Then = thenActivity;
+        ifActivity.Else = elseActivity;
+
+        // Mutate after construction, before execution
+        flag = true;
+
+        // Act
+        var context = await ExecuteAsync(ifActivity);
+
+        // Assert
+        var resultValue = (bool)context.GetActivityOutput(() => ifActivity.Result)!;
+        await Assert.That(resultValue).IsTrue();
+        await Assert.That(context.HasScheduledActivity(thenActivity)).IsTrue();
+        await Assert.That(context.HasScheduledActivity(elseActivity)).IsFalse();
+    }
+    
+    [Test]           // outer, inner
+    [Arguments(true,  true)]
+    [Arguments(true,  false)]
+    [Arguments(false, true)]
+    [Arguments(false, false)]
+    public async Task Should_Schedule_Correct_Branches_For_Nested_If(bool outerCondition, bool innerCondition)
+    {
+        // Arrange inner
+        var innerThen = new WriteLine("inner-then");
+        var innerElse = new WriteLine("inner-else");
+        var innerIf = new If(() => innerCondition)
+        {
+            Then = innerThen,
+            Else = innerElse
+        };
+
+        // Arrange outer
+        var outerElse = new WriteLine("outer-else");
+        var outerIf = new If(() => outerCondition)
+        {
+            Then = innerIf,
+            Else = outerElse
+        };
+
+        // Act
+        var context = await ExecuteAsync(outerIf);
+
+        // Assert outer result & scheduling
+        var outerResult = (bool)context.GetActivityOutput(() => outerIf.Result)!;
+        await Assert.That(outerResult).IsEqualTo(outerCondition);
+
+        if (outerCondition)
+        {
+            // When outer condition is true, the inner If should be scheduled
+            await Assert.That(context.HasScheduledActivity(innerIf)).IsTrue().Because("Inner If should be scheduled when outer condition is true");
+
+            // The outer else should NOT be scheduled
+            await Assert.That(context.HasScheduledActivity(outerElse)).IsFalse().Because("Outer else should not be scheduled when outer condition is true");
+
+            // The inner branches should NOT be scheduled yet because the inner If hasn't executed
+            await Assert.That(context.HasScheduledActivity(innerThen)).IsFalse().Because("Inner then should not be scheduled yet - inner If hasn't executed");
+            await Assert.That(context.HasScheduledActivity(innerElse)).IsFalse().Because("Inner else should not be scheduled yet - inner If hasn't executed");
+
+            // Note: The inner If result won't be available until it executes, so we can't assert it
+        }
+        else
+        {
+            // When outer condition is false, outer else should be scheduled
+            await Assert.That(context.HasScheduledActivity(outerElse)).IsTrue().Because("Outer else should be scheduled when outer condition is false");
+
+            // The inner If and its branches should NOT be scheduled
+            await Assert.That(context.HasScheduledActivity(innerIf)).IsFalse().Because("Inner If should not be scheduled when outer condition is false");
+            await Assert.That(context.HasScheduledActivity(innerThen)).IsFalse().Because("Inner then should not be scheduled when outer condition is false");
+            await Assert.That(context.HasScheduledActivity(innerElse)).IsFalse().Because("Inner else should not be scheduled when outer condition is false");
+        }
+    }
+
+    private static Task<ActivityExecutionContext> ExecuteAsync(IActivity activity)
+    {
+        return new ActivityTestFixture(activity).ExecuteAsync();
+    }
+}

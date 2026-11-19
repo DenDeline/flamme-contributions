@@ -1,0 +1,626 @@
+using Flamme.Common.Multitenancy;
+using Flamme.Workflows.Models;
+using Microsoft.Extensions.Logging;
+using TUnit.Mocks;
+using System.Threading.Tasks;
+
+namespace Flamme.Workflows.Core.UnitTests.Services;
+
+/// <summary>
+/// Unit tests for ActivityRegistry, specifically testing multi-tenant descriptor resolution logic and refresh behavior.
+/// </summary>
+public class ActivityRegistryTests
+{
+    private const string TestActivityType = "TestActivity";
+    private const string CurrentTenant = "tenant1";
+
+    private readonly IActivityDescriber _activityDescriber;
+    private readonly ILogger<ActivityRegistry> _logger;
+    private readonly ActivityRegistry _registry;
+
+    public ActivityRegistryTests()
+    {
+        var tenantAccessor = ITenantAccessor.Mock().Object;
+        _activityDescriber = IActivityDescriber.Mock().Object;
+        _logger = ILogger<ActivityRegistry>.Mock().Object;
+        _registry = new(_activityDescriber, [], tenantAccessor, _logger);
+
+        // Set default tenant for all tests
+        Mock.Get(tenantAccessor).TenantId.Returns(CurrentTenant);
+    }
+
+    [Test]
+    public async Task Find_TenantSpecificPreferredOverTenantAgnostic_WhenBothExist()
+    {
+        // Arrange
+        var tenantSpecific = CreateDescriptor(TestActivityType, 1, CurrentTenant);
+        var tenantAgnostic = CreateDescriptor(TestActivityType, 2, Tenant.AgnosticTenantId); // Higher version
+        RegisterDescriptors(tenantSpecific, tenantAgnostic);
+
+        // Act
+        var result = _registry.Find(TestActivityType);
+
+        // Assert - tenant-specific should be preferred even though it has a lower version
+        await AssertDescriptor(result, CurrentTenant, 1);
+    }
+
+    [Test]
+    public async Task Find_ReturnsTenantAgnostic_WhenNoTenantSpecificExists()
+    {
+        // Arrange
+        var tenantAgnostic = CreateDescriptor(TestActivityType, 1, Tenant.AgnosticTenantId);
+        RegisterDescriptors(tenantAgnostic);
+
+        // Act
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, Tenant.AgnosticTenantId, 1);
+    }
+
+    [Test]
+    [Arguments(1, 2, 3, 3)] // Multiple versions, expect highest
+    [Arguments(3, 1, 2, 3)] // Out of order registration
+    [Arguments(1, 1, 1, 1)] // Same version multiple times
+    public async Task Find_ReturnsHighestVersionTenantSpecific_WhenMultipleTenantSpecificExist(int v1, int v2, int v3, int expectedVersion)
+    {
+        // Arrange
+        var descriptors = new[]
+        {
+            CreateDescriptor(TestActivityType, v1, CurrentTenant),
+            CreateDescriptor(TestActivityType, v2, CurrentTenant),
+            CreateDescriptor(TestActivityType, v3, CurrentTenant)
+        };
+        RegisterDescriptors(descriptors);
+
+        // Act
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, CurrentTenant, expectedVersion);
+    }
+
+    [Test]
+    [Arguments(1, 2, 3, 3)] // Multiple versions, expect highest
+    [Arguments(3, 1, 2, 3)] // Out of order registration
+    [Arguments(1, 1, 1, 1)] // Same version multiple times
+    public async Task Find_ReturnsHighestVersionTenantAgnostic_WhenMultipleTenantAgnosticExist(int v1, int v2, int v3, int expectedVersion)
+    {
+        // Arrange
+        var descriptors = new[]
+        {
+            CreateDescriptor(TestActivityType, v1, Tenant.AgnosticTenantId),
+            CreateDescriptor(TestActivityType, v2, Tenant.AgnosticTenantId),
+            CreateDescriptor(TestActivityType, v3, Tenant.AgnosticTenantId)
+        };
+        RegisterDescriptors(descriptors);
+
+        // Act
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, Tenant.AgnosticTenantId, expectedVersion);
+    }
+
+    [Test]
+    public async Task Find_ReturnsNull_WhenNoMatchingDescriptorsExist()
+    {
+        // Arrange
+        var otherDescriptor = CreateDescriptor("OtherActivity", 1, CurrentTenant);
+        RegisterDescriptors(otherDescriptor);
+
+        // Act
+        var result = _registry.Find("NonExistentActivity");
+
+        // Assert
+        await Assert.That(result).IsNull();
+    }
+
+    [Test]
+    public async Task Find_ReturnsNextLatestVersion_WhenLatestDescriptorRemoved()
+    {
+        // Arrange
+        var v1 = CreateDescriptor(TestActivityType, 1, CurrentTenant);
+        var v2 = CreateDescriptor(TestActivityType, 2, CurrentTenant);
+        var v3 = CreateDescriptor(TestActivityType, 3, CurrentTenant);
+        RegisterDescriptors(v1, v2, v3);
+
+        // Act
+        _registry.Remove(typeof(ActivityRegistry), v3);
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, CurrentTenant, 2);
+    }
+
+    [Test]
+    public async Task Find_KeepsLatestVersion_WhenNonLatestDescriptorRemoved()
+    {
+        // Arrange
+        var v1 = CreateDescriptor(TestActivityType, 1, CurrentTenant);
+        var v2 = CreateDescriptor(TestActivityType, 2, CurrentTenant);
+        var v3 = CreateDescriptor(TestActivityType, 3, CurrentTenant);
+        RegisterDescriptors(v1, v2, v3);
+
+        // Act
+        _registry.Remove(typeof(ActivityRegistry), v1);
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, CurrentTenant, 3);
+    }
+
+    [Test]
+    public async Task Find_ReturnsNull_WhenProviderWithLatestDescriptorClearedAndNoDescriptorsRemain()
+    {
+        // Arrange
+        var descriptor = CreateDescriptor(TestActivityType, 1, CurrentTenant);
+        _registry.Add(typeof(Provider1), descriptor);
+
+        // Act
+        _registry.ClearProvider(typeof(Provider1));
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await Assert.That(result).IsNull();
+    }
+
+    [Test]
+    public async Task Find_RecomputesLatestVersion_WhenProviderWithLatestDescriptorCleared()
+    {
+        // Arrange
+        var provider1V1 = CreateDescriptor(TestActivityType, 1, CurrentTenant);
+        var provider1V3 = CreateDescriptor(TestActivityType, 3, CurrentTenant);
+        var provider2V2 = CreateDescriptor(TestActivityType, 2, CurrentTenant);
+        _registry.Add(typeof(Provider1), provider1V1);
+        _registry.Add(typeof(Provider1), provider1V3);
+        _registry.Add(typeof(Provider2), provider2V2);
+
+        // Act
+        _registry.ClearProvider(typeof(Provider1));
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, CurrentTenant, 2);
+    }
+
+    [Test]
+    public async Task Find_ReturnsNull_WhenRegistryCleared()
+    {
+        // Arrange
+        RegisterDescriptors(CreateDescriptor(TestActivityType, 2, CurrentTenant));
+
+        // Act
+        _registry.Clear();
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await Assert.That(result).IsNull();
+    }
+
+    [Test]
+    public async Task GetDescriptorsAsync_ReturnsEmpty_WhenRegistryCleared()
+    {
+        // Arrange
+        Mock.Get(_activityDescriber).DescribeActivityAsync(typeof(ActivityRegistryTests), Arg.Any<CancellationToken>())
+                    .Returns(CreateDescriptor(TestActivityType, 1, CurrentTenant));
+
+        await _registry.RegisterAsync(typeof(ActivityRegistryTests), CancellationToken.None);
+
+        // Act
+        _registry.Clear();
+        var descriptors = await _registry.GetDescriptorsAsync();
+
+        // Assert
+        await Assert.That(descriptors).IsEmpty();
+        await Assert.That(_registry.ListAll()).IsEmpty();
+        await Assert.That(_registry.Find(TestActivityType)).IsNull();
+    }
+
+    [Test]
+    public async Task Find_IgnoresOtherTenantDescriptors_OnlyReturnsCurrentTenantOrAgnostic()
+    {
+        // Arrange
+        var descriptors = new[]
+        {
+            CreateDescriptor(TestActivityType, 1, CurrentTenant),
+            CreateDescriptor(TestActivityType, 5, "tenant2"), // Much higher version but wrong tenant
+            CreateDescriptor(TestActivityType, 2, Tenant.AgnosticTenantId)
+        };
+        RegisterDescriptors(descriptors);
+
+        // Act
+        var result = _registry.Find(TestActivityType);
+
+        // Assert - should return tenant1 descriptor (not tenant2, even though it has higher version)
+        await AssertDescriptor(result, CurrentTenant, 1);
+    }
+
+    [Test]
+    public async Task RefreshDescriptorsAsync_CalledTwice_DoesNotLogWarnings()
+    {
+        // Arrange
+        var mockProvider = IActivityProvider.Mock().Object;
+        var descriptor1 = new ActivityDescriptor
+        {
+            TypeName = "TestActivity1",
+            Version = 1,
+            Kind = ActivityKind.Task,
+            Category = "Test",
+            Description = "Test Activity 1",
+            IsBrowsable = true
+        };
+
+        var descriptor2 = new ActivityDescriptor
+        {
+            TypeName = "TestActivity2",
+            Version = 1,
+            Kind = ActivityKind.Task,
+            Category = "Test",
+            Description = "Test Activity 2",
+            IsBrowsable = true
+        };
+        Mock.Get(mockProvider).GetDescriptorsAsync(Arg.Any<CancellationToken>())
+                    .Returns([descriptor1, descriptor2]);
+
+        var providers = new[] { mockProvider };
+
+        // Act - First refresh
+        await _registry.RefreshDescriptorsAsync(providers);
+
+        // Act - Second refresh (simulates the intentional repopulation in DefaultRegistriesPopulator)
+        await _registry.RefreshDescriptorsAsync(providers);
+
+        // Assert - Verify no warning logs were made
+        await Assert.That(Mock.Get(_logger).Invocations.Count(call => call.MemberName == "Log" && Equals(call.Arguments[0], LogLevel.Warning) && call.Arguments[2]!.ToString()!.Contains("was already registered"))).IsEqualTo(0);
+
+        // Verify descriptors are still registered
+        var allDescriptors = _registry.ListAll().ToList();
+        await Assert.That(allDescriptors.Count).IsEqualTo(2);
+        await Assert.That(allDescriptors).Contains(d => d.TypeName == "TestActivity1");
+        await Assert.That(allDescriptors).Contains(d => d.TypeName == "TestActivity2");
+    }
+
+    [Test]
+    public async Task RefreshDescriptorsAsync_PreservesManualDescriptors()
+    {
+        // Arrange
+        // Create a manual descriptor
+        var manualDescriptor = new ActivityDescriptor
+        {
+            TypeName = "ManualActivity",
+            Version = 1,
+            Kind = ActivityKind.Task,
+            Category = "Manual",
+            Description = "Manually registered activity",
+            IsBrowsable = true
+        };
+
+        _registry.Register(manualDescriptor);
+
+        // Create a provider descriptor
+        var mockProvider = IActivityProvider.Mock().Object;
+        var providerDescriptor = new ActivityDescriptor
+        {
+            TypeName = "ProviderActivity",
+            Version = 1,
+            Kind = ActivityKind.Task,
+            Category = "Provider",
+            Description = "Provider activity",
+            IsBrowsable = true
+        };
+        Mock.Get(mockProvider).GetDescriptorsAsync(Arg.Any<CancellationToken>())
+                    .Returns([providerDescriptor]);
+
+        var providers = new[] { mockProvider };
+
+        // Act - Refresh with provider
+        await _registry.RefreshDescriptorsAsync(providers);
+
+        // Assert - Both manual and provider descriptors should be present
+        var allDescriptors = _registry.ListAll().ToList();
+        await Assert.That(allDescriptors.Count).IsEqualTo(2);
+        await Assert.That(allDescriptors).Contains(d => d.TypeName == "ManualActivity");
+        await Assert.That(allDescriptors).Contains(d => d.TypeName == "ProviderActivity");
+
+        // Verify no warnings about manual descriptor being replaced
+        await Assert.That(Mock.Get(_logger).Invocations.Count(call => call.MemberName == "Log" && Equals(call.Arguments[0], LogLevel.Warning) && call.Arguments[2]!.ToString()!.Contains("ManualActivity"))).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task RefreshDescriptorsAsync_LogsWarning_WhenDifferentProvidersRegisterSameActivity()
+    {
+        // Arrange
+        // Create two different providers with the same activity
+        var descriptor1 = new ActivityDescriptor
+        {
+            TypeName = "DuplicateActivity",
+            Version = 1,
+            Kind = ActivityKind.Task,
+            Category = "Test",
+            Description = "From Provider 1",
+            IsBrowsable = true
+        };
+
+        var descriptor2 = new ActivityDescriptor
+        {
+            TypeName = "DuplicateActivity",
+            Version = 1,
+            Kind = ActivityKind.Task,
+            Category = "Test",
+            Description = "From Provider 2",
+            IsBrowsable = true
+        };
+
+        var provider1 = new Provider1([descriptor1]);
+        var provider2 = new Provider2([descriptor2]);
+        var providers = new IActivityProvider[] { provider1, provider2 };
+
+        // Act
+        await _registry.RefreshDescriptorsAsync(providers);
+
+        // Assert - Should log a warning for the duplicate
+        await Assert.That(Mock.Get(_logger).Invocations.Count(call => call.MemberName == "Log" && Equals(call.Arguments[0], LogLevel.Warning) && call.Arguments[2]!.ToString()!.Contains("DuplicateActivity") && call.Arguments[2]!.ToString()!.Contains("was already registered"))).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task RefreshDescriptorsAsync_RecomputesLatestDescriptor_WhenProviderDropsLatestVersion()
+    {
+        // Arrange
+        var provider = new MutableProvider(
+        [
+            CreateDescriptor(TestActivityType, 1, CurrentTenant),
+            CreateDescriptor(TestActivityType, 3, CurrentTenant)
+        ]);
+
+        await _registry.RefreshDescriptorsAsync(provider);
+
+        provider.Descriptors =
+        [
+            CreateDescriptor(TestActivityType, 1, CurrentTenant)
+        ];
+
+        // Act
+        await _registry.RefreshDescriptorsAsync(provider);
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, CurrentTenant, 1);
+    }
+
+    [Test]
+    public async Task RefreshDescriptorsAsync_PreservesExistingDescriptors_WhenProviderReturnsNoTenantGroups()
+    {
+        // Arrange
+        var provider = new MutableProvider(
+        [
+            CreateDescriptor(TestActivityType, 2, CurrentTenant)
+        ]);
+
+        await _registry.RefreshDescriptorsAsync(provider);
+
+        provider.Descriptors = [];
+
+        // Act
+        await _registry.RefreshDescriptorsAsync(provider);
+        var result = _registry.Find(TestActivityType);
+
+        // Assert
+        await AssertDescriptor(result, CurrentTenant, 2);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_InitializesTenantAgnosticProviderOnlyOnce_WhenCalledRepeatedly()
+    {
+        // Arrange
+        var provider = new CountingTenantAgnosticProvider();
+
+        // Act
+        await _registry.EnsureDescriptorsAsync(provider);
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_InitializesTenantAgnosticProviderOnlyOnce_WhenCalledConcurrently()
+    {
+        // Arrange
+        var provider = new BlockingTenantAgnosticProvider();
+        var initializationTasks = Enumerable.Range(0, 8)
+            .Select(_ => _registry.EnsureDescriptorsAsync(provider))
+            .ToArray();
+
+        await provider.FirstCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await Task.Yield();
+        provider.Release();
+
+        // Act
+        await Task.WhenAll(initializationTasks);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_RetriesTenantAgnosticProvider_AfterFailure()
+    {
+        // Arrange
+        var provider = new CountingTenantAgnosticProvider([new InvalidOperationException("Expected failure")]);
+
+        // Act
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => _registry.EnsureDescriptorsAsync(provider));
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_RetriesTenantAgnosticProvider_AfterCancellation()
+    {
+        // Arrange
+        var provider = new CountingTenantAgnosticProvider([new OperationCanceledException()]);
+
+        // Act
+        await Assert.That(() => _registry.EnsureDescriptorsAsync(provider)).Throws<OperationCanceledException>();
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_ReinitializesTenantAgnosticProvider_AfterRegistryIsCleared()
+    {
+        // Arrange
+        var provider = new CountingTenantAgnosticProvider();
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Act
+        _registry.Clear();
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_ReinitializesTenantAgnosticProvider_AfterProviderIsCleared()
+    {
+        // Arrange
+        var provider = new CountingTenantAgnosticProvider();
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Act
+        _registry.ClearProvider(provider.GetType());
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task EnsureDescriptorsAsync_RefreshesTenantSensitiveProvider_OnEveryCall()
+    {
+        // Arrange
+        var provider = new CountingTenantSensitiveProvider();
+
+        // Act
+        await _registry.EnsureDescriptorsAsync(provider);
+        await _registry.EnsureDescriptorsAsync(provider);
+
+        // Assert
+        await Assert.That(provider.CallCount).IsEqualTo(2);
+    }
+
+
+    private ActivityDescriptor CreateDescriptor(string typeName, int version, string? tenantId) =>
+        new()
+        {
+            TypeName = typeName,
+            Version = version,
+            TenantId = tenantId,
+            Kind = ActivityKind.Action
+        };
+
+    private void RegisterDescriptors(params ActivityDescriptor[] descriptors)
+    {
+        foreach (var descriptor in descriptors)
+            _registry.Register(descriptor);
+    }
+
+    private static async Task AssertDescriptor(ActivityDescriptor? result, string? expectedTenantId, int expectedVersion)
+    {
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.TenantId).IsEqualTo(expectedTenantId);
+        await Assert.That(result.Version).IsEqualTo(expectedVersion);
+    }
+    private sealed class Provider1(IEnumerable<ActivityDescriptor> descriptors) : IActivityProvider
+    {
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default) => new(descriptors);
+    }
+
+    private sealed class Provider2(IEnumerable<ActivityDescriptor> descriptors) : IActivityProvider
+    {
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default) => new(descriptors);
+    }
+
+    private sealed class MutableProvider(IEnumerable<ActivityDescriptor> descriptors) : IActivityProvider
+    {
+        public IEnumerable<ActivityDescriptor> Descriptors { get; set; } = descriptors;
+
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default) => new(Descriptors);
+    }
+
+    private sealed class CountingTenantAgnosticProvider(IEnumerable<Exception>? failures = null) : ITenantAgnosticActivityProvider
+    {
+        private readonly Queue<Exception> _failures = new(failures ?? []);
+        private int _callCount;
+
+        public int CallCount => Volatile.Read(ref _callCount);
+
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _callCount);
+
+            if (_failures.TryDequeue(out var failure))
+                return ValueTask.FromException<IEnumerable<ActivityDescriptor>>(failure);
+
+            return new([new ActivityDescriptor
+            {
+                TypeName = nameof(CountingTenantAgnosticProvider),
+                Version = 1,
+                TenantId = Tenant.AgnosticTenantId,
+                Kind = ActivityKind.Action
+            }]);
+        }
+    }
+
+    private sealed class BlockingTenantAgnosticProvider : ITenantAgnosticActivityProvider
+    {
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _callCount;
+
+        public TaskCompletionSource FirstCallStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int CallCount => Volatile.Read(ref _callCount);
+
+        public async ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _callCount);
+            FirstCallStarted.TrySetResult();
+            await _release.Task.WaitAsync(cancellationToken);
+
+            return [new ActivityDescriptor
+            {
+                TypeName = nameof(BlockingTenantAgnosticProvider),
+                Version = 1,
+                TenantId = Tenant.AgnosticTenantId,
+                Kind = ActivityKind.Action
+            }];
+        }
+
+        public void Release() => _release.TrySetResult();
+    }
+
+    private sealed class CountingTenantSensitiveProvider : IActivityProvider
+    {
+        private int _callCount;
+
+        public int CallCount => Volatile.Read(ref _callCount);
+
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _callCount);
+            return new([new ActivityDescriptor
+            {
+                TypeName = nameof(CountingTenantSensitiveProvider),
+                Version = 1,
+                TenantId = CurrentTenant,
+                Kind = ActivityKind.Action
+            }]);
+        }
+    }
+
+}

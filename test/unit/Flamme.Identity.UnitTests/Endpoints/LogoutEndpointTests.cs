@@ -1,0 +1,347 @@
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.Time.Testing;
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using Flamme.Common;
+using Flamme.Common.Services;
+using Flamme.Extensions;
+using Flamme.Features.Services;
+using Flamme.Identity.Contracts;
+using Flamme.Identity.Entities;
+using Flamme.Identity.Features;
+using Flamme.Identity.HostedServices;
+using Flamme.Identity.Models;
+using Flamme.Identity.Options;
+using Flamme.Identity.Services;
+using Flamme.UnitTests.Shared;
+using FastEndpoints;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+
+namespace Flamme.Identity.UnitTests.Endpoints;
+
+/// <summary>
+/// Signs in, refreshes and signs out through the real endpoints, authentication schemes, token services and the
+/// in-memory revocation store.
+/// </summary>
+[NotInParallel(nameof(FastEndpointsCollection))]
+public sealed class LogoutEndpointTests
+{
+    private static readonly User Alice = new() { Id = "alice-id", Name = "alice" };
+    private static readonly User Bob = new() { Id = "bob-id", Name = "bob" };
+    private readonly FakeTimeProvider _clock = new(DateTimeOffset.UtcNow);
+    private WebApplication _app = null!;
+    private HttpClient _client = null!;
+    private IdentityTokenOptions _tokenOptions = null!;
+
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This JIT-run test host intentionally discovers production endpoints through FastEndpoints reflection.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This JIT-run test host intentionally discovers production endpoints through FastEndpoints reflection.")]
+    [Before(Test)]
+    public async Task InitializeAsync()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.WebHost.UseTestServer();
+        var module = IModule.Mock().Object;
+        Mock.Get(module).Services.Returns(builder.Services);
+        new IdentityFeature(module) { TokenOptions = options => options.SigningKey = IdentityTokenTestConstants.SigningKey }.Apply();
+        new DefaultAuthenticationFeature(module).Apply();
+
+        // The startup diagnostics need the permission catalog, which this host does not install.
+        foreach (var diagnostic in builder.Services.Where(x => x.ImplementationType?.Namespace == typeof(StoredPermissionValidator).Namespace).ToList())
+            builder.Services.Remove(diagnostic);
+
+        builder.Services
+            .AddSingleton<TimeProvider>(_clock)
+            .AddScoped<IUserCredentialsValidator, NameOnlyCredentialsValidator>()
+            .AddFastEndpoints(options =>
+            {
+                options.Assemblies = [typeof(IdentityFeature).Assembly];
+                options.Filter = x => x.Namespace is "Flamme.Identity.Endpoints.Login" or "Flamme.Identity.Endpoints.RefreshToken" or "Flamme.Identity.Endpoints.Logout";
+            });
+
+        _app = builder.Build();
+        _tokenOptions = _app.Services.GetRequiredService<IOptions<IdentityTokenOptions>>().Value;
+        var users = _app.Services.GetRequiredService<MemoryStore<User>>();
+        users.Save(Alice, x => x.Id);
+        users.Save(Bob, x => x.Id);
+        _app.UseAuthentication();
+        _app.UseAuthorization();
+        _app.UseFastEndpoints();
+        await _app.StartAsync();
+        _client = _app.GetTestClient();
+    }
+
+    [After(Test)]
+    public async Task DisposeAsync()
+    {
+        try
+        {
+            _client?.Dispose();
+            if (_app is not null)
+            {
+                try
+                {
+                    await _app.StopAsync();
+                }
+                finally
+                {
+                    await _app.DisposeAsync();
+                }
+            }
+        }
+        finally
+        {
+            FastEndpointsResolver.Reset();
+        }
+    }
+
+    [Test]
+    public async Task RevokedRefreshTokenIsRejectedLikeAnInvalidOne()
+    {
+        var tokens = await LoginAsync(Alice);
+        await AssertRefreshWorksAsync(tokens.RefreshToken);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, tokens.AccessToken, tokens.RefreshToken);
+
+        await AssertRefreshRejectedAsync(tokens.RefreshToken);
+        await AssertRefreshRejectedAsync("not-a-token");
+    }
+
+    [Test]
+    public async Task RevokingASessionRevokesTheRefreshTokensItHeldBeforeItsLatestRefresh()
+    {
+        var signIn = await LoginAsync(Alice);
+        var refreshed = await RefreshTokensAsync(signIn.RefreshToken);
+
+        await LogoutAsync(refreshed.AccessToken, refreshed.RefreshToken);
+
+        await AssertRefreshRejectedAsync(signIn.RefreshToken);
+        await AssertRefreshRejectedAsync(refreshed.RefreshToken);
+    }
+
+    [Test]
+    public async Task OtherSessionsOfTheSameUserAreUnaffected()
+    {
+        var ended = await LoginAsync(Alice);
+        var other = await LoginAsync(Alice);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, ended.AccessToken, ended.RefreshToken);
+
+        await AssertRefreshRejectedAsync(ended.RefreshToken);
+        await AssertRefreshWorksAsync(other.RefreshToken);
+    }
+
+    [Test]
+    public async Task RevokingARevokedTokenSucceeds()
+    {
+        var tokens = await LoginAsync(Alice);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, tokens.AccessToken, tokens.RefreshToken);
+        await AssertLogoutAsync(HttpStatusCode.NoContent, tokens.AccessToken, tokens.RefreshToken);
+        await AssertRefreshRejectedAsync(tokens.RefreshToken);
+    }
+
+    [Test]
+    public async Task RevokingAnUnknownTokenSucceedsWithoutEndingTheSession()
+    {
+        var tokens = await LoginAsync(Alice);
+        // Well-formed refresh token, but signed with a key this deployment does not use.
+        var signedWithAnotherKey = LegacyRefreshToken.Create(new() { SigningKey = "another-signing-key-with-at-least-32-chars" }, Alice);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, tokens.AccessToken, "not-a-token");
+        await AssertLogoutAsync(HttpStatusCode.NoContent, tokens.AccessToken, signedWithAnotherKey);
+
+        await AssertRefreshWorksAsync(tokens.RefreshToken);
+    }
+
+    [Test]
+    public async Task AnAccessTokenIsRefusedRatherThanReportedRevoked()
+    {
+        var tokens = await LoginAsync(Alice);
+
+        await AssertLogoutAsync(HttpStatusCode.BadRequest, tokens.AccessToken, tokens.AccessToken);
+
+        await AssertRefreshWorksAsync(tokens.RefreshToken);
+    }
+
+    [Test]
+    public async Task AMissingRefreshTokenIsRefused()
+    {
+        var tokens = await LoginAsync(Alice);
+
+        await AssertLogoutAsync(HttpStatusCode.BadRequest, tokens.AccessToken, "");
+    }
+
+    [Test]
+    public async Task AnotherUsersSessionIsNotRevoked()
+    {
+        var alice = await LoginAsync(Alice);
+        var bob = await LoginAsync(Bob);
+
+        await AssertLogoutAsync(HttpStatusCode.Forbidden, alice.AccessToken, bob.RefreshToken);
+
+        await AssertRefreshWorksAsync(bob.RefreshToken);
+    }
+
+    [Test]
+    public async Task ARefreshTokenOfTheSameUserInAnotherTenantIsNotRevoked()
+    {
+        var alice = await LoginAsync(Alice);
+        var otherTenant = await IssueTokensAsync(new() { Id = Alice.Id, Name = Alice.Name, TenantId = "tenant-b" });
+
+        await AssertLogoutAsync(HttpStatusCode.Forbidden, alice.AccessToken, otherTenant.RefreshToken);
+
+        await using var scope = _app.Services.CreateAsyncScope();
+        await Assert.That(await scope.ServiceProvider.GetRequiredService<SessionRevoker>().IsRevokedAsync(GetSession(otherTenant.RefreshToken).Id)).IsFalse();
+    }
+
+    [Test]
+    public async Task LogoutRequiresAnAccessToken()
+    {
+        var tokens = await LoginAsync(Alice);
+
+        await Assert.That((await SendAsync("/identity/logout", null, tokens.RefreshToken)).StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+        await AssertLogoutAsync(HttpStatusCode.Unauthorized, tokens.RefreshToken, tokens.RefreshToken);
+
+        await AssertRefreshWorksAsync(tokens.RefreshToken);
+    }
+
+    [Test]
+    public async Task RevokingWithAnExpiredRefreshTokenEndsItsSession()
+    {
+        _clock.AdjustTime(_clock.GetUtcNow() - TimeSpan.FromHours(3));
+        var expired = await LoginAsync(Alice);
+        _clock.Advance(TimeSpan.FromHours(3));
+        var live = await ContinueSessionAsync(Alice, expired.RefreshToken);
+        await AssertRefreshWorksAsync(live.RefreshToken);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, live.AccessToken, expired.RefreshToken);
+
+        await AssertRefreshRejectedAsync(live.RefreshToken);
+    }
+
+    [Test]
+    public async Task RefreshTokenIssuedBeforeSessionsExistedWorksUntilItsSessionIsRevoked()
+    {
+        var legacy = LegacyRefreshToken.Create(_tokenOptions, Alice);
+        var refreshed = await RefreshTokensAsync(legacy);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, refreshed.AccessToken, legacy);
+
+        await AssertRefreshRejectedAsync(legacy);
+        await AssertRefreshRejectedAsync(refreshed.RefreshToken);
+    }
+
+    [Test]
+    public async Task ARevocationOutlivesARefreshTokenIssuedBeforeSessionsExistedWithALongerLifetime()
+    {
+        _tokenOptions.RefreshTokenLifetime = TimeSpan.FromDays(30);
+        var legacy = LegacyRefreshToken.Create(_tokenOptions, Alice);
+        _tokenOptions.RefreshTokenLifetime = TimeSpan.FromHours(2);
+        var refreshed = await RefreshTokensAsync(legacy);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, refreshed.AccessToken, refreshed.RefreshToken);
+        await PruneRevocationsAsync(TimeSpan.FromDays(1));
+
+        await AssertRefreshRejectedAsync(legacy);
+    }
+
+    [Test]
+    public async Task ARevocationOutlivesTheOlderRefreshTokensOfTheSessionAfterTheLifetimeIsLowered()
+    {
+        _tokenOptions.RefreshTokenLifetime = TimeSpan.FromDays(30);
+        var signIn = await LoginAsync(Alice);
+        _tokenOptions.RefreshTokenLifetime = TimeSpan.FromHours(2);
+        var refreshed = await RefreshTokensAsync(signIn.RefreshToken);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, refreshed.AccessToken, refreshed.RefreshToken);
+        await AssertRefreshRejectedAsync(signIn.RefreshToken);
+
+        // Long enough for a revocation computed from the current lifetime alone to be pruned.
+        await PruneRevocationsAsync(TimeSpan.FromDays(1));
+
+        await AssertRefreshRejectedAsync(signIn.RefreshToken);
+    }
+
+    [Test]
+    public async Task SigningOutAgainWithAShorterLivedRefreshTokenDoesNotShortenTheRevocation()
+    {
+        var signIn = await LoginAsync(Alice);
+        _tokenOptions.RefreshTokenLifetime = TimeSpan.FromDays(30);
+        var longLived = await RefreshTokensAsync(signIn.RefreshToken);
+        _tokenOptions.RefreshTokenLifetime = TimeSpan.FromHours(2);
+
+        await AssertLogoutAsync(HttpStatusCode.NoContent, longLived.AccessToken, longLived.RefreshToken);
+        // The sign-in token knows nothing of the longer-lived one refreshed from it.
+        await AssertLogoutAsync(HttpStatusCode.NoContent, longLived.AccessToken, signIn.RefreshToken);
+        await PruneRevocationsAsync(TimeSpan.FromDays(1));
+
+        await AssertRefreshRejectedAsync(longLived.RefreshToken);
+    }
+
+    private async Task<IssuedTokens> LoginAsync(User user) =>
+        await ReadTokensAsync(await _client.PostAsync("/identity/login", new StringContent(new JsonObject { ["username"] = user.Name, ["password"] = "unchecked" }.ToJsonString(), System.Text.Encoding.UTF8, "application/json")));
+
+    private Task<HttpResponseMessage> RefreshAsync(string refreshToken) => SendAsync("/identity/refresh-token", refreshToken, null);
+
+    private Task<HttpResponseMessage> LogoutAsync(string accessToken, string refreshToken) => SendAsync("/identity/logout", accessToken, refreshToken);
+
+    private async Task<IssuedTokens> RefreshTokensAsync(string refreshToken) => await ReadTokensAsync(await RefreshAsync(refreshToken));
+
+    private Task AssertRefreshWorksAsync(string refreshToken) => RefreshTokensAsync(refreshToken);
+
+    private async Task AssertRefreshRejectedAsync(string refreshToken) => await Assert.That((await RefreshAsync(refreshToken)).StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+
+    private async Task AssertLogoutAsync(HttpStatusCode expected, string accessToken, string refreshToken) => await Assert.That((await LogoutAsync(accessToken, refreshToken)).StatusCode).IsEqualTo(expected);
+
+    private async Task<HttpResponseMessage> SendAsync(string path, string? bearerToken, string? refreshTokenToRevoke)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
+
+        if (bearerToken != null)
+            request.Headers.Authorization = new("Bearer", bearerToken);
+
+        if (refreshTokenToRevoke != null)
+            request.Content = new StringContent(new JsonObject { ["refreshToken"] = refreshTokenToRevoke }.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
+
+        return await _client.SendAsync(request);
+    }
+
+    // Revocations are pruned when the next session is revoked.
+    private async Task PruneRevocationsAsync(TimeSpan later)
+    {
+        _clock.Advance(later);
+        var other = await LoginAsync(Bob);
+        await AssertLogoutAsync(HttpStatusCode.NoContent, other.AccessToken, other.RefreshToken);
+    }
+
+    private Task<IssuedTokens> ContinueSessionAsync(User user, string refreshToken) => IssueTokensAsync(user, GetSession(refreshToken));
+
+    private async Task<IssuedTokens> IssueTokensAsync(User user, SignInSession? session = null)
+    {
+        await using var scope = _app.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IAccessTokenIssuer>().IssueTokensAsync(user, session);
+    }
+
+    private static SignInSession GetSession(string refreshToken) =>
+        SessionRevoker.GetSession(new ClaimsIdentity(new JsonWebTokenHandler().ReadJsonWebToken(refreshToken).Claims), refreshToken);
+
+    private static async Task<IssuedTokens> ReadTokensAsync(HttpResponseMessage response)
+    {
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync(TestJsonSerializerContext.Default.LoginResponse))!;
+        await Assert.That(body.IsAuthenticated).IsTrue();
+        return new(body.AccessToken!, body.RefreshToken!);
+    }
+
+    // Password verification is not under test, and costs 600,000 PBKDF2 iterations per sign-in.
+    private sealed class NameOnlyCredentialsValidator(IUserProvider userProvider) : IUserCredentialsValidator
+    {
+        public async ValueTask<User?> ValidateAsync(string username, string password, CancellationToken cancellationToken = default) =>
+            await userProvider.FindByNameAsync(username, cancellationToken);
+    }
+}

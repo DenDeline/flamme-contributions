@@ -1,0 +1,187 @@
+using Flamme.Http;
+using Flamme.Workflows.Activities;
+using Flamme.Workflows.ComponentTests.Abstractions;
+using Flamme.Workflows.ComponentTests.Fixtures;
+using Flamme.Workflows.Management;
+using Flamme.Workflows.Management.Entities;
+using Flamme.Workflows.Runtime;
+using Flamme.Workflows.Runtime.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Flamme.Workflows.ComponentTests.Scenarios.ConcurrentTriggerIndexing;
+
+/// <summary>
+/// Tests for reproducing and preventing duplicate trigger registration in multi-engine scenarios.
+/// Simulates the race condition that occurs when multiple engines load and index
+/// workflows from blob storage simultaneously.
+/// </summary>
+public class ConcurrentTriggerIndexingTests(App app) : AppComponentTest(app)
+{
+    [Test]
+    [DisplayName("Concurrent trigger indexing from multiple pods should not create duplicates")]
+    public async Task ConcurrentIndexing_ShouldNotCreateDuplicates()
+    {
+        // Arrange
+        var (workflow, workflowDefinition) = await CreateAndSaveTestWorkflowAsync();
+
+        // Act: Fire one indexing task per pod simultaneously.
+        // The distributed lock inside IndexTriggersAsync serializes them;
+        // 3 operations (one per pod) is sufficient to exercise the race condition
+        // without waiting for many serialized DB round-trips.
+        var startBarrier = new TaskCompletionSource();
+        var allPods = await Cluster.GetAllPodsAsync();
+
+        var indexingTasks = allPods.Select(pod => Task.Run(async () =>
+        {
+            await startBarrier.Task;
+            await using var scope = pod.Services.CreateAsyncScope();
+            var indexer = scope.ServiceProvider.GetRequiredService<ITriggerIndexer>();
+            return await indexer.IndexTriggersAsync(workflowDefinition);
+        })).ToArray();
+
+        startBarrier.SetResult(); // Release all tasks simultaneously.
+
+        await Task.WhenAll(indexingTasks);
+
+        // Assert
+        await AssertSingleTriggerExistsAsync(workflow.Identity.DefinitionId);
+    }
+
+    [Test]
+    [DisplayName("Concurrent workflow refreshes should not create duplicates")]
+    public async Task ConcurrentWorkflowRefresh_ShouldNotCreateDuplicates()
+    {
+        // Arrange
+        var (workflow, _) = await CreateAndSaveTestWorkflowAsync();
+        var allPods = await Cluster.GetAllPodsAsync();
+
+        // Act: Simulate concurrent refresh calls from different engines (via API or file watcher)
+        var refreshTasks = allPods.Select(pod => Task.Run(async () =>
+        {
+            await using var scope = pod.Services.CreateAsyncScope();
+            var refresher = scope.ServiceProvider.GetRequiredService<IWorkflowDefinitionsRefresher>();
+            return await refresher.RefreshWorkflowDefinitionsAsync(new()
+            {
+                DefinitionIds = [workflow.Identity.DefinitionId]
+            }, CancellationToken.None);
+        })).ToArray();
+
+        await Task.WhenAll(refreshTasks);
+
+        // Assert
+        await AssertSingleTriggerExistsAsync(workflow.Identity.DefinitionId);
+    }
+
+    [Test]
+    [DisplayName("Attempting to create duplicate triggers should fail with unique constraint violation")]
+    public async Task ManuallyCreatedDuplicates_ShouldViolateUniqueConstraint()
+    {
+        // Arrange: This test verifies the database unique constraint protection layer
+        var (workflow, workflowDefinition) = await CreateAndSaveTestWorkflowAsync();
+        var triggerStore = GetTriggerStore();
+
+        // Index the workflow first
+        var indexer = Scope.ServiceProvider.GetRequiredService<ITriggerIndexer>();
+        await indexer.IndexTriggersAsync(workflowDefinition);
+
+        // Act & Assert: Attempting to create a duplicate should throw DbUpdateException
+        var existingTriggers = await GetTriggersAsync(workflow.Identity.DefinitionId);
+        var duplicateTrigger = CreateDuplicateTrigger(existingTriggers[0]);
+
+        var exception = (await Assert.ThrowsExactlyAsync<DbUpdateException>(async () =>
+            await triggerStore.SaveAsync(duplicateTrigger)))!;
+
+        // Verify it's specifically a unique constraint violation
+        var message = exception.InnerException?.Message ?? exception.Message;
+        await Assert.That(message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("23505", StringComparison.OrdinalIgnoreCase)).IsTrue().Because($"Expected unique constraint violation, but got: {message}");
+    }
+
+    private async Task<(Workflow workflow, WorkflowDefinition definition)> CreateAndSaveTestWorkflowAsync()
+    {
+        var workflow = CreateTestWorkflow();
+        var definition = await SaveWorkflowDefinitionAsync(workflow);
+        return (workflow, definition);
+    }
+
+    private async Task AssertSingleTriggerExistsAsync(string workflowDefinitionId)
+    {
+        var triggers = await GetTriggersAsync(workflowDefinitionId);
+        await Assert.That(triggers.Count == 1).IsTrue().Because($"Expected exactly 1 trigger, but found {triggers.Count}");
+    }
+
+    private async Task<List<StoredTrigger>> GetTriggersAsync(string workflowDefinitionId)
+    {
+        var triggerStore = GetTriggerStore();
+        return (await triggerStore.FindManyAsync(new()
+        {
+            WorkflowDefinitionId = workflowDefinitionId
+        })).ToList();
+    }
+
+    private ITriggerStore GetTriggerStore() => Scope.ServiceProvider.GetRequiredService<ITriggerStore>();
+
+    private static Workflow CreateTestWorkflow()
+    {
+        var httpEndpoint = new HttpEndpoint
+        {
+            Path = new($"/test-concurrent/{Guid.NewGuid()}"),
+            SupportedMethods = new(["GET"]),
+            CanStartWorkflow = true
+        };
+
+        var definitionId = Guid.NewGuid().ToString();
+        var workflowId = Guid.NewGuid().ToString();
+
+        return new()
+        {
+            Identity = new(definitionId, 1, workflowId),
+            Root = new Sequence
+            {
+                Activities =
+                {
+                    httpEndpoint
+                }
+            },
+            Publication = new(IsLatest: true, IsPublished: true)
+        };
+    }
+
+    private async Task<WorkflowDefinition> SaveWorkflowDefinitionAsync(Workflow workflow)
+    {
+        var workflowDefinitionStore = Scope.ServiceProvider.GetRequiredService<IWorkflowDefinitionStore>();
+        var activitySerializer = Scope.ServiceProvider.GetRequiredService<IActivitySerializer>();
+
+        var definition = new WorkflowDefinition
+        {
+            Id = workflow.Identity.Id,
+            DefinitionId = workflow.Identity.DefinitionId,
+            Version = workflow.Identity.Version,
+            IsLatest = true,
+            IsPublished = true,
+            Name = "Test Concurrent Workflow",
+            Description = "Workflow for testing concurrent trigger indexing",
+            MaterializerName = "Json",
+            StringData = activitySerializer.Serialize(workflow.Root)
+        };
+
+        await workflowDefinitionStore.SaveAsync(definition);
+        return definition;
+    }
+
+    private static StoredTrigger CreateDuplicateTrigger(StoredTrigger original)
+    {
+        return new()
+        {
+            Id = Guid.NewGuid().ToString(),
+            WorkflowDefinitionId = original.WorkflowDefinitionId,
+            WorkflowDefinitionVersionId = original.WorkflowDefinitionVersionId,
+            Name = original.Name,
+            ActivityId = original.ActivityId,
+            Hash = original.Hash,
+            Payload = original.Payload
+        };
+    }
+}

@@ -1,0 +1,194 @@
+using Microsoft.Extensions.Time.Testing;
+using Flamme.Authorization;
+using System.Net;
+using System.Security.Claims;
+using System.Text.Json;
+using Flamme.Common;
+using Flamme.Common.Multitenancy;
+using Flamme.ExternalAuthentication.Contracts;
+using Flamme.ExternalAuthentication.Models;
+using Flamme.ExternalAuthentication.Options;
+using Flamme.ExternalAuthentication.Permissions;
+using Flamme.ExternalAuthentication.Services;
+using Flamme.ExternalAuthentication.Stores.InMemory;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
+using Flamme.ExternalAuthentication.IntegrationTests.Fixtures;
+using Flamme.Identity.Contracts;
+using TUnit.AspNetCore;
+
+namespace Flamme.ExternalAuthentication.IntegrationTests.Operations;
+
+public class PreviewEndpointContractTests : WebApplicationTest<PreviewEndpointContractWebApplicationFactory, ExternalAuthenticationTestEntryPoint>
+{
+    private const string PreviewHandle = "preview-handle";
+    private static readonly Uri ProviderAuthorizationUri = new("https://provider.example/authorize?state=provider-state");
+    private HttpClient? _client;
+    private readonly TestAuthenticationState _authentication = new();
+    private readonly FakeTimeProvider _clock = new(DateTimeOffset.Parse("2026-07-30T00:00:00Z"));
+    private readonly ExternalAuthenticationOptions _options = new();
+    private readonly TestHandleHasher _handleHasher = new();
+    private readonly TestAdapter _adapter = new();
+    private readonly IIdentityProviderConnectionStore _store = IIdentityProviderConnectionStore.Mock().Object;
+    private readonly IConnectionRegistryVersionStore _registryVersions = IConnectionRegistryVersionStore.Mock().Object;
+    private readonly IUnlinkedIdentityPolicyRegistry _policies = IUnlinkedIdentityPolicyRegistry.Mock().Object;
+    private readonly IExternalUserMatcherRegistry _matchers = IExternalUserMatcherRegistry.Mock().Object;
+    private readonly IPermissionGrantSourceRegistry _grantSources = IPermissionGrantSourceRegistry.Mock().Object;
+    private readonly IPermissionDelegationAuthorizer _delegation = IPermissionDelegationAuthorizer.Mock().Object;
+    private readonly IRoleAuthorizationService _roles = IRoleAuthorizationService.Mock().Object;
+    private readonly IExternalAuthenticationSessionStore _sessions = IExternalAuthenticationSessionStore.Mock().Object;
+    private readonly IExternalIdentityProvisioner _provisioner = IExternalIdentityProvisioner.Mock().Object;
+    private readonly IPermissionGrantResolver _permissionGrants = IPermissionGrantResolver.Mock().Object;
+    private readonly ITenantAccessor _tenantAccessor = ITenantAccessor.Mock().Object;
+    private readonly IIdentityProviderConnectionRegistry _connectionRegistry = IIdentityProviderConnectionRegistry.Mock().Object;
+    private readonly IAdapterSettingsMigrationService _settingsMigrations = IAdapterSettingsMigrationService.Mock().Object;
+    private readonly IIdentityProviderConnectionValidityAssessor _validityAssessor = IIdentityProviderConnectionValidityAssessor.Mock().Object;
+    private readonly InMemoryExternalAuthenticationStateStore _stateStore;
+    private readonly InMemoryPreviewResultStore _previewResults;
+
+    private HttpClient Client => _client ??= Factory.CreateClient(new() { AllowAutoRedirect = false });
+
+    public PreviewEndpointContractTests()
+    {
+        _authentication.SetClaims(
+            new Claim(PermissionNames.ClaimType, $"{ExternalAuthenticationResourcePermissions.Connections}:{ExternalAuthenticationVerbs.Preview}"),
+            new Claim(ClaimTypes.NameIdentifier, "administrator-a"));
+        Mock.Get(_tenantAccessor).TenantId.Returns("tenant-a");
+        _stateStore = new InMemoryExternalAuthenticationStateStore(_clock);
+        _previewResults = new InMemoryPreviewResultStore(_clock);
+
+        var connection = CreateConnection();
+        var effectiveConnection = new EffectiveIdentityProviderConnection(connection, ConnectionSourceOwnership.Configuration, ConnectionScope.Host, ConnectionValidity.Valid, false, "test");
+        Mock.Get(_connectionRegistry).FindByIdAsync("tenant-a", connection.Id, Arg.Any<CancellationToken>())
+            .ReturnsAsync(ValueTask.FromResult<EffectiveIdentityProviderConnection?>(effectiveConnection));
+        Mock.Get(_settingsMigrations).MigrateAsync(_adapter.Type, connection.AdapterSettingsVersion, Arg.Any<JsonElement>(), Arg.Any<CancellationToken>())
+            .ReturnsAsync(ValueTask.FromResult(new AdapterSettingsMigrationResult(connection.AdapterSettingsVersion, connection.AdapterSettings, false)));
+        Mock.Get(_validityAssessor).AssessAsync(Arg.Any<EffectiveIdentityProviderConnection>(), Arg.Any<CancellationToken>())
+            .Returns((EffectiveIdentityProviderConnection candidate, CancellationToken cancellationToken) => ValueTask.FromResult(candidate));
+    }
+
+    protected override async Task SetupAsync()
+    {
+        var connection = CreateConnection();
+        var expiresAt = _clock.GetUtcNow().AddMinutes(5);
+        await _stateStore.PutAsync("PreviewStart", _handleHasher.Hash(PreviewHandle), new BrokerTransaction
+        {
+            HandleHash = _handleHasher.Hash(PreviewHandle),
+            Purpose = BrokerTransactionPurpose.Preview,
+            ClientId = "administrator-a",
+            CallbackUri = new Uri($"/external-authentication/previews/{PreviewHandle}/authorize", UriKind.Relative),
+            ReturnPath = "/",
+            TenantId = "tenant-a",
+            ConnectionId = connection.Id,
+            ConnectionMaterialRevision = connection.MaterialRevision,
+            PkceChallenge = string.Empty,
+            ExpiresAt = expiresAt
+        }, expiresAt);
+    }
+
+    protected override void ConfigureTestServices(IServiceCollection services)
+    {
+        services.AddSingleton(_authentication);
+        services.AddSingleton(_store);
+        services.AddSingleton(_connectionRegistry);
+        services.AddSingleton(_validityAssessor);
+        services.AddSingleton(_registryVersions);
+        services.AddSingleton<IExternalAuthenticationAdapterRegistry>(new TestAdapterRegistry(_adapter));
+        services.AddSingleton(_settingsMigrations);
+        services.AddSingleton(_policies);
+        services.AddSingleton(_matchers);
+        services.AddSingleton(_grantSources);
+        services.AddSingleton(_delegation);
+        services.AddSingleton<IPermissionEvaluator, PermissionEvaluator>();
+        services.AddSingleton<ConnectionRevisionCalculator>();
+        services.AddSingleton<TimeProvider>(_clock);
+        services.AddSingleton(Microsoft.Extensions.Options.Options.Create(_options));
+        services.AddSingleton(_roles);
+        services.AddSingleton(_sessions);
+        services.AddSingleton(_provisioner);
+        services.AddSingleton(_permissionGrants);
+        services.AddSingleton<IExternalAuthenticationStateStore>(_stateStore);
+        services.AddSingleton<IPreviewResultStore>(_previewResults);
+        services.AddSingleton<IExternalAuthenticationHandleHasher>(_handleHasher);
+        services.AddSingleton<IDataProtectionProvider>(new EphemeralDataProtectionProvider());
+        services.AddSingleton(_tenantAccessor);
+        services.AddScoped<IdentityProviderConnectionManagementService>();
+        services.AddScoped<ExternalAuthenticationSecurityNotifier>();
+        services.AddScoped<PreviewSignInService>();
+    }
+
+    [Test]
+    public async Task AuthorizeReturnsProviderRedirectAndConsumedHandleReturnsGone()
+    {
+        var firstResponse = await Client.GetAsync($"/external-authentication/previews/{PreviewHandle}/authorize");
+        var secondResponse = await Client.GetAsync($"/external-authentication/previews/{PreviewHandle}/authorize");
+
+        await Assert.That(firstResponse.StatusCode).IsEqualTo(HttpStatusCode.Found);
+        await Assert.That(firstResponse.Headers.Location).IsEqualTo(ProviderAuthorizationUri);
+        await Assert.That(secondResponse.StatusCode).IsEqualTo(HttpStatusCode.Gone);
+    }
+
+    [Test]
+    public async Task MissingPreviewResultReturnsNotFound()
+    {
+        var response = await Client.GetAsync("/external-authentication/previews/missing-handle");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    private static IdentityProviderConnection CreateConnection() => new()
+    {
+        Id = "connection-a",
+        TenantId = ConnectionScope.HostTenantId,
+        Key = "connection-a",
+        AdapterType = TestAdapter.AdapterType,
+        AdapterSettingsVersion = 1,
+        AdapterSettings = JsonElement.Parse("{}"),
+        DisplayName = "Connection A",
+        IsEnabled = true,
+        MaterialRevision = "material-revision-a",
+        Revision = 1
+    };
+
+
+    private sealed class TestHandleHasher : IExternalAuthenticationHandleHasher
+    {
+        public string Hash(string value) => $"hashed:{value}";
+    }
+
+    private sealed class TestAdapterRegistry(IExternalAuthenticationAdapter adapter) : IExternalAuthenticationAdapterRegistry
+    {
+        public IReadOnlyCollection<ExternalAuthenticationAdapterDescriptor> ListDescriptors() => [adapter.Describe()];
+
+        public bool TryGet(string type, out IExternalAuthenticationAdapter resolved)
+        {
+            resolved = adapter;
+            return string.Equals(type, adapter.Type, StringComparison.Ordinal);
+        }
+    }
+
+    private sealed class TestAdapter : IExternalAuthenticationAdapter
+    {
+        public const string AdapterType = "preview-endpoint-test";
+        public string Type => AdapterType;
+
+        public ExternalAuthenticationAdapterDescriptor Describe() => new(
+            Type,
+            "Preview endpoint test",
+            "Deterministic adapter for the preview endpoint contract.",
+            1,
+            [],
+            new ExternalAuthenticationAdapterCapabilities(true, true, false),
+            null);
+
+        public ValueTask<ConnectionValidationResult> ValidateAsync(ConnectionValidationContext context, CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(new ConnectionValidationResult(true, [], []));
+
+        public ValueTask<ExternalAuthorizationRequest> CreateAuthorizationRequestAsync(ExternalAuthorizationContext context, CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(new ExternalAuthorizationRequest(ProviderAuthorizationUri, []));
+
+        public ValueTask<ExternalAuthenticationResult> AuthenticateCallbackAsync(ExternalCallbackContext context, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<ConnectionTestResult> TestAsync(ConnectionTestContext context, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<ExternalLogoutRequest?> CreateLogoutRequestAsync(ExternalLogoutContext context, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+}

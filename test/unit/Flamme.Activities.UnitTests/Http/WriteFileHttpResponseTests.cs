@@ -1,0 +1,604 @@
+using Microsoft.Extensions.Time.Testing;
+using System.Text;
+using System.IO.Compression;
+using Flamme.Common;
+using Flamme.Http;
+using Flamme.Http.ContentWriters;
+using Flamme.Http.Parsers;
+using Flamme.Http.Options;
+using Flamme.Testing.Shared;
+using Flamme.Workflows;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Flamme.Workflows.Exceptions;
+using System.Threading.Tasks;
+
+namespace Flamme.Activities.UnitTests.Http;
+
+public class WriteFileHttpResponseTests
+{
+    [Test]
+    [Arguments("text/plain", "test.txt")]
+    [Arguments("application/pdf", "document.pdf")]
+    [Arguments("image/jpeg", "photo.jpg")]
+    [Arguments("application/zip", "archive.zip")]
+    public async Task Should_Set_Correct_Content_Type_And_Filename(string contentType, string filename)
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        activity.ContentType = new(contentType);
+        activity.Filename = new(filename);
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo(contentType);
+        await Assert.That(httpContext.Response.Headers.ContentDisposition.ToString()).Contains($"filename={filename}");
+    }
+
+    [Test]
+    [Arguments("Hello World")]
+    [Arguments("")]
+    public async Task Should_Handle_String_Content(string content)
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        activity.Content = new(content);
+        activity.Filename = new("test.txt");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        var responseContent = GetResponseContent(httpContext);
+        await Assert.That(responseContent).IsEqualTo(content);
+    }
+
+    [Test]
+    public async Task Should_Handle_Byte_Array_Content()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testBytes = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testBytes);
+        activity.Filename = new("test.bin");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        var responseBytes = GetResponseBytes(httpContext);
+        await Assert.That(responseBytes).IsEquivalentTo(testBytes, EqualityComparer<byte>.Default, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Should_Handle_Stream_Content()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Stream content";
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(testContent));
+        
+        activity.Content = new(stream);
+        activity.Filename = new("stream.txt");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        var responseContent = GetResponseContent(httpContext);
+        await Assert.That(responseContent).IsEqualTo(testContent);
+    }
+
+    [Test]
+    public async Task Should_Handle_Uri_Content()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testUri = new Uri("https://example.com/file.txt");
+        
+        activity.Content = new(testUri);
+        activity.Filename = new("downloaded.txt");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        // The actual file download would be mocked through the IDownloadableManager
+    }
+
+    [Test]
+    public async Task Should_Handle_Multiple_Files_As_Zip()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var files = new object[]
+        {
+            "File 1 content",
+            "File 2 content"u8.ToArray()
+        };
+        
+        activity.Content = new(files);
+        activity.Filename = new("archive.zip");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("application/zip");
+        await Assert.That(httpContext.Response.Headers.ContentDisposition.ToString()).Contains("filename=archive.zip");
+    }
+
+    [Test]
+    public async Task Should_Return_NoContent_When_Content_Is_Null()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        activity.Content = new((object?)null!, string.Empty);
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status204NoContent);
+    }
+
+    [Test]
+    public async Task Should_Return_ApplicationZip_When_Content_Is_Empty_Array()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        activity.Content = new(Array.Empty<object>());
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status200OK);
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("application/zip");
+    }
+
+    [Test]
+    [Arguments("\"12345\"")]
+    [Arguments("\"abcdef\"")]
+    public async Task Should_Set_Entity_Tag_Header(string entityTag)
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        activity.EntityTag = new(entityTag);
+        activity.EnableResumableDownloads = new(true);
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+
+        // Strong ETags should match exactly
+        await Assert.That(httpContext.Response.Headers.ETag.ToString()).IsEqualTo(entityTag);
+    }
+
+    [Test]
+    public async Task Should_Enable_Range_Processing_When_Resumable_Downloads_Enabled()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        activity.EnableResumableDownloads = new(true);
+        activity.EntityTag = new("\"test-etag\"");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+
+        // Range processing and ETag should be handled by FileStreamResult
+        await Assert.That(httpContext.Response.Headers.ContainsKey("ETag")).IsTrue();
+    }
+
+    [Test]
+    public async Task Should_Not_Set_ETag_When_Resumable_Downloads_Disabled()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        activity.EnableResumableDownloads = new(false);
+        activity.EntityTag = new("\"test-etag\"");
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.Headers.ContainsKey("ETag")).IsFalse();
+    }
+
+    [Test]
+    [Arguments("file.txt", "text/plain")]
+    [Arguments("document.pdf", "application/pdf")]
+    [Arguments("image.jpg", "image/jpeg")]
+    [Arguments("archive.zip", "application/zip")]
+    [Arguments("unknown.xyz", "application/octet-stream")]
+    public async Task Should_Determine_Content_Type_From_Filename_When_Not_Specified(string filename, string expectedContentType)
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        activity.Filename = new(filename);
+        // ContentType not set, should be determined from filename
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo(expectedContentType);
+    }
+
+    [Test]
+    public async Task Should_Use_Default_Filename_When_Not_Specified()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        // Filename not set, should default to "file.bin"
+
+        // Act
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.Headers.ContentDisposition.ToString()).Contains("filename=file.bin");
+    }
+
+    [Test]
+    public async Task Should_Fault_When_No_HttpContext_Available()
+    {
+        // Arrange
+        var activity = new WriteFileHttpResponse();
+        var fixture = new ActivityTestFixture(activity);
+        fixture.ConfigureServices(services =>
+        {
+            var mockHttpContextAccessor = IHttpContextAccessor.Mock().Object;
+            Mock.Get(mockHttpContextAccessor).HttpContext.Returns((HttpContext?)null);
+            services.AddSingleton(mockHttpContextAccessor);
+            AddMockServices(services);
+        });
+
+        // Act + Assert
+        await Assert.ThrowsExactlyAsync<FaultException>(() => fixture.ExecuteAsync());
+    }
+
+    [Test]
+    public async Task Should_Handle_Downloadable_Object_With_Metadata()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var downloadable = new Downloadable
+        {
+            Stream = new MemoryStream("Test content"u8.ToArray()),
+            Filename = "metadata-file.txt",
+            ContentType = "text/plain",
+            ETag = "\"metadata-etag\""
+        };
+        
+        activity.Content = new(downloadable);
+
+        // Act  
+        var context = await ExecuteActivityAsync(activity, httpContext);
+
+        // Assert
+        await Assert.That(context.IsCompleted).IsTrue();
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("text/plain");
+        await Assert.That(httpContext.Response.Headers.ContentDisposition.ToString()).Contains("filename=metadata-file.txt");
+    }
+
+    [Test]
+    public async Task Should_Throw_FormatException_For_Malformed_ETag()
+    {
+        // Arrange
+        var (activity, httpContext) = CreateWriteFileHttpResponseActivity();
+        var testContent = "Hello World"u8.ToArray();
+        
+        activity.Content = new(testContent);
+        activity.EntityTag = new("W/\"weak-etag\""); // Malformed weak ETag format
+        activity.EnableResumableDownloads = new(true);
+
+        // Act & Assert
+        var exception = (await Assert.ThrowsExactlyAsync<FormatException>(async () =>
+        {
+            await ExecuteActivityAsync(activity, httpContext);
+        }))!;
+        
+        await Assert.That(exception.Message).Contains("The format of value 'W/\"weak-etag\"' is invalid");
+    }
+
+    // Helper Methods
+    private static (WriteFileHttpResponse activity, HttpContext httpContext) CreateWriteFileHttpResponseActivity()
+    {
+        var activity = new WriteFileHttpResponse();
+        var httpContext = CreateMockHttpContext();
+        
+        return (activity, httpContext);
+    }
+
+    private static DefaultHttpContext CreateMockHttpContext()
+    {
+        var httpContext = new DefaultHttpContext();
+        
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddOptions();
+        
+        // Add required services for FileStreamResult
+        services.AddSingleton<IActionResultExecutor<Microsoft.AspNetCore.Mvc.FileStreamResult>>(
+            _ => new FileStreamResultExecutor(LoggerFactory.Create(b => b.AddConsole()))
+        );
+        
+        // Add IContentTypeProvider mock
+        services.AddSingleton(CreateContentTypeProviderMock());
+        
+        httpContext.RequestServices = services.BuildServiceProvider();
+        httpContext.Response.Body = new MemoryStream();
+        
+        return httpContext;
+    }
+
+    private static IContentTypeProvider CreateContentTypeProviderMock()
+    {
+        var mockContentTypeProvider = IContentTypeProvider.Mock().Object;
+        var contentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".txt"] = "text/plain",
+            [".pdf"] = "application/pdf",
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".png"] = "image/png",
+            [".zip"] = "application/zip",
+            [".html"] = "text/html",
+            [".css"] = "text/css",
+            [".js"] = "application/javascript",
+            [".json"] = "application/json",
+            [".xml"] = "application/xml"
+        };
+        foreach (var (extension, contentType) in contentTypes)
+            Mock.Get(mockContentTypeProvider)
+                .TryGetContentType(Arg.Is<string>(filename => string.Equals(Path.GetExtension(filename), extension, StringComparison.OrdinalIgnoreCase)))
+                .Returns(true)
+                .SetsOutContentType(contentType);
+        return mockContentTypeProvider;
+    }
+
+    private static async Task<ActivityExecutionContext> ExecuteActivityAsync(WriteFileHttpResponse activity, HttpContext httpContext)
+    {
+        var fixture = new ActivityTestFixture(activity);
+        fixture.ConfigureServices(services =>
+        {
+            var mockHttpContextAccessor = IHttpContextAccessor.Mock().Object;
+            Mock.Get(mockHttpContextAccessor).HttpContext.Returns(httpContext);
+            services.AddSingleton(mockHttpContextAccessor);
+            services.AddSingleton(CreateMockHttpActivityOptions());
+            AddHttpContentFactories(services);
+            AddHttpContentParsers(services);
+            AddMockServices(services);
+            services.AddSingleton(IStimulusHasher.Mock().Object);
+            services.AddLogging();
+        });
+
+        return await fixture.ExecuteAsync();
+    }
+
+    private static Microsoft.Extensions.Options.IOptions<HttpActivityOptions> CreateMockHttpActivityOptions()
+    {
+        var options = new HttpActivityOptions
+        {
+            WriteHttpResponseSynchronously = false
+        };
+        var mockOptions = Microsoft.Extensions.Options.IOptions<HttpActivityOptions>.Mock().Object;
+        Mock.Get(mockOptions).Value.Returns(options);
+        return mockOptions;
+    }
+
+    private static void AddHttpContentFactories(IServiceCollection services)
+    {
+        services.AddSingleton<IHttpContentFactory, JsonContentFactory>();
+        services.AddSingleton<IHttpContentFactory, TextContentFactory>();
+        services.AddSingleton<IHttpContentFactory, XmlContentFactory>();
+        services.AddSingleton<IHttpContentFactory, FormUrlEncodedHttpContentFactory>();
+    }
+
+    private static void AddHttpContentParsers(IServiceCollection services)
+    {
+        services.AddSingleton<IHttpContentParser, JsonHttpContentParser>();
+        services.AddSingleton<IHttpContentParser, PlainTextHttpContentParser>();
+        services.AddSingleton<IHttpContentParser, XmlHttpContentParser>();
+        services.AddSingleton<IHttpContentParser, TextHtmlHttpContentParser>();
+        services.AddSingleton<IHttpContentParser, FileHttpContentParser>();
+    }
+
+    private static void AddMockServices(IServiceCollection services)
+    {
+        services.AddSingleton(CreateDownloadableManagerMock());
+        services.AddSingleton(CreateContentTypeProviderMock());
+        services.AddSingleton(IFileCacheStorageProvider.Mock().Object);
+        services.AddSingleton(CreateFileCacheOptionsMock());
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(DateTimeOffset.UnixEpoch));
+        services.AddSingleton(IStimulusHasher.Mock().Object);
+        services.AddLogging();
+        
+        RegisterZipManager(services);
+    }
+
+    private static IDownloadableManager CreateDownloadableManagerMock()
+    {
+        var mock = IDownloadableManager.Mock().Object;
+        Mock.Get(mock).GetDownloadablesAsync(Arg.Any<object>(), Arg.Any<DownloadableOptions?>(), Arg.Any<CancellationToken>())
+            .Returns((object content, DownloadableOptions? options, CancellationToken cancellationToken) =>
+            {
+                return CreateMockDownloadables(content).Select(d => new Func<ValueTask<Downloadable>>(() => ValueTask.FromResult(d)));
+            });
+        return mock;
+    }
+
+    private static Microsoft.Extensions.Options.IOptions<HttpFileCacheOptions> CreateFileCacheOptionsMock()
+    {
+        var mock = Microsoft.Extensions.Options.IOptions<HttpFileCacheOptions>.Mock().Object;
+        Mock.Get(mock).Value.Returns(new HttpFileCacheOptions { TimeToLive = TimeSpan.FromHours(1) });
+        return mock;
+    }
+
+    private static void RegisterZipManager(IServiceCollection services)
+    {
+        var zipManagerType = Type.GetType("Flamme.Http.Services.ZipManager, Flamme.Http");
+        if (zipManagerType != null)
+        {
+            services.AddSingleton(zipManagerType, zipManagerType);
+        }
+        else
+        {
+            services.AddSingleton<object>(_ => new());
+        }
+    }
+
+    private static IEnumerable<Downloadable> CreateMockDownloadables(object content)
+    {
+        switch (content)
+        {
+            // Simplified mock creation for different content types
+            case byte[] byteArray:
+                yield return new()
+                {
+                    Stream = new MemoryStream(byteArray),
+                    ContentType = null,
+                    Filename = null
+                };
+                break;
+            case string text:
+                yield return new()
+                {
+                    Stream = new MemoryStream(Encoding.UTF8.GetBytes(text)),
+                    ContentType = null,
+                    Filename = null
+                };
+                break;
+            case Stream stream:
+                // For Stream objects, return them as-is
+                yield return new()
+                {
+                    Stream = stream,
+                    ContentType = null,
+                    Filename = null
+                };
+                break;
+            case Uri uri:
+                {
+                    // For Uri objects, simulate downloaded content
+                    var mockContent = $"Downloaded content from {uri}";
+                    yield return new()
+                    {
+                        Stream = new MemoryStream(Encoding.UTF8.GetBytes(mockContent)),
+                        ContentType = null,
+                        Filename = null
+                    };
+                    break;
+                }
+            case Downloadable downloadable:
+                // For Downloadable objects, return them as-is
+                yield return downloadable;
+                break;
+            case IEnumerable<object> fileContents:
+                {
+                    // For collections, create a zip downloadable
+                    var zipDownloadable = CreateZipDownloadable(fileContents);
+                    yield return zipDownloadable;
+                    break;
+                }
+            default:
+                throw new NotSupportedException("Unsupported content type");
+        }
+    }
+
+    private static Downloadable CreateZipDownloadable(IEnumerable<object> fileContents)
+    {
+        // Don't use 'using' here to avoid disposing the stream prematurely
+        var memoryStream = new MemoryStream();
+        
+        try
+        {
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                var fileIndex = 0;
+                foreach (var fileContent in fileContents)
+                {
+                    var entryName = $"file{fileIndex++}.txt";
+                    var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                    
+                    using (var entryStream = entry.Open())
+                    {
+                        var contentBytes = Encoding.UTF8.GetBytes(fileContent.ToString() ?? "");
+                        entryStream.Write(contentBytes, 0, contentBytes.Length);
+                    }
+                }
+            }
+
+            memoryStream.Position = 0;
+            return new()
+            {
+                Stream = memoryStream,
+                ContentType = "application/zip",
+                Filename = "archive.zip"
+            };
+        }
+        catch
+        {
+            // If something goes wrong, dispose the stream to prevent leaks
+            memoryStream.Dispose();
+            throw;
+        }
+    }
+
+    private static string GetResponseContent(HttpContext httpContext)
+    {
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(httpContext.Response.Body, Encoding.UTF8, leaveOpen: true);
+        var content = reader.ReadToEnd();
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin); // Reset stream position
+        return content;
+    }
+
+    private static byte[] GetResponseBytes(HttpContext httpContext)
+    {
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var memoryStream = new MemoryStream();
+        httpContext.Response.Body.CopyTo(memoryStream);
+        return memoryStream.ToArray();
+    }
+}

@@ -1,0 +1,34 @@
+using Flamme.Workflows.Activities;
+using Flamme.Workflows.Runtime.Activities;
+
+namespace Flamme.Workflows.IntegrationTests.Activities;
+
+public class FinishForkedWorkflow : WorkflowBase
+{
+    protected override void Build(IWorkflowBuilder workflow)
+    {
+        workflow.Root = new Fork
+        {
+            JoinMode = ForkJoinMode.WaitAll,
+            Branches =
+            {
+                new Sequence
+                {
+                    Activities =
+                    {
+                        new WriteLine("Branch 1"),
+                        new Runtime.Activities.Event("Event 1")
+                    }
+                },
+                new Sequence
+                {
+                    Activities =
+                    {
+                        new WriteLine("Branch 2"),
+                        new Finish()
+                    }
+                }
+            }
+        };
+    }
+}

@@ -1,0 +1,26 @@
+﻿using Flamme.Workflows.ComponentTests.Abstractions;
+using Flamme.Workflows.ComponentTests.Fixtures;
+using Flamme.Workflows.Management;
+using Flamme.Workflows.Runtime;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Flamme.Workflows.ComponentTests.Scenarios.InputOutput;
+
+public class InputOutputTests(App app) : AppComponentTest(app)
+{
+    [Test]
+    [DisplayName("Input should be received by the Provider and should in turn be able to send it back to the Consumer.")]
+    public async Task InputShouldBeOutput()
+    {
+        const string workflowDefinitionVersionId = "4e993ab1b3d4e4a1";
+        var workflowDefinitionService = Scope.ServiceProvider.GetRequiredService<IWorkflowDefinitionService>();
+        var workflowInvoker = Scope.ServiceProvider.GetRequiredService<IWorkflowInvoker>();
+        var variableManager = Scope.ServiceProvider.GetRequiredService<IWorkflowInstanceVariableManager>();
+        var workflowGraph = await workflowDefinitionService.FindWorkflowGraphAsync(workflowDefinitionVersionId);
+        var result = await workflowInvoker.InvokeAsync(workflowGraph!);
+        var variables = await variableManager.GetVariablesAsync(result.WorkflowState.Id);
+        var variableValue = variables.First().Value;
+        
+        await Assert.That(variableValue).IsEqualTo("Hello World!");
+    }
+}

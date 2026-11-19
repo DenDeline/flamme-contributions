@@ -1,0 +1,18 @@
+using Flamme.Mediator.Contracts;
+using Flamme.Mediator.Models;
+
+namespace Flamme.Workflows.Runtime.Commands;
+
+/// <summary>
+/// Represents a command that dispatches a workflow instance.
+/// </summary>
+public class DispatchTriggerWorkflowsCommand(string activityTypeName, object stimulus) : ICommand<Unit>
+{
+    public string ActivityTypeName { get; init; } = activityTypeName;
+    public object Stimulus { get; init; } = stimulus;
+    public string? CorrelationId { get; set; }
+    public string? WorkflowInstanceId { get; set; }
+    public string? ActivityInstanceId { get; set; }
+    public IDictionary<string, object>? Input { get; set; }
+    public IDictionary<string, object>? Properties { get; set; }
+}

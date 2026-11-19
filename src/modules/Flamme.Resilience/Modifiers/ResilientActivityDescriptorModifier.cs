@@ -1,0 +1,29 @@
+using Flamme.Workflows;
+using Flamme.Workflows.Models;
+
+namespace Flamme.Resilience.Modifiers;
+
+/// <summary>
+/// Modifies the <see cref="ActivityDescriptor"/> for resilient activities.
+/// </summary>
+public class ResilientActivityDescriptorModifier : IActivityDescriptorModifier
+{
+    /// <inheritdoc />
+    public void Modify(ActivityDescriptor descriptor)
+    {
+        if (!descriptor.CustomProperties.TryGetValue("Type", out var typeObj))
+            return;
+        
+        if(typeObj is not Type type)
+            return;
+        
+        // Check if this type implements IResilientActivity.
+        if (!typeof(IResilientActivity).IsAssignableFrom(type))
+            return;
+
+        var categoryAttr = descriptor.Attributes.FirstOrDefault(x => x is ResilienceCategoryAttribute) as ResilienceCategoryAttribute;
+        var category = categoryAttr?.Category ?? "Default";
+        descriptor.CustomProperties["Resilient"] = true;
+        descriptor.CustomProperties["ResilienceCategory"] = category;
+    }
+}

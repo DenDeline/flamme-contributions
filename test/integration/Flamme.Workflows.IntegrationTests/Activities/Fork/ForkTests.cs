@@ -1,0 +1,68 @@
+using Flamme.Extensions;
+using Flamme.Testing.Shared;
+using Flamme.Workflows.IntegrationTests.Activities.Workflows;
+using Flamme.Workflows.Options;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Flamme.Workflows.IntegrationTests.Activities;
+
+/// <summary>
+/// Integration tests for the <see cref="Workflows.Activities.Fork"/> activity.
+/// Tests Fork behavior with different join modes and branch configurations.
+/// </summary>
+public class ForkTests : IAsyncDisposable
+{
+    private readonly WorkflowTestFixture _fixture = new(TestContext.Current!.Output.StandardOutput);
+
+    [Test]
+    [DisplayName("Fork executes all branches with WaitAll")]
+    public async Task Fork_ExecutesAllBranchesWithWaitAll()
+    {
+        // Act
+        await _fixture.RunWorkflowAsync(new BasicForkWorkflow());
+        var lines = _fixture.CapturingTextWriter.Lines.ToList();
+
+        // Assert
+        await Assert.That(lines).IsEquivalentTo(new[] { "Branch 1", "Branch 2", "Branch 3" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [DisplayName("Fork with WaitAny continues after first branch completes")]
+    public async Task Fork_WaitAnyContinuesAfterFirstBranch()
+    {
+        // Arrange & build services
+        await _fixture.BuildAsync();
+        var workflowBuilderFactory = _fixture.Services.GetRequiredService<IWorkflowBuilderFactory>();
+        var workflow = await workflowBuilderFactory.CreateBuilder().BuildWorkflowAsync<JoinAnyForkWorkflow>();
+
+        // Act - First run
+        var workflowRunner = _fixture.Services.GetRequiredService<IWorkflowRunner>();
+        var result = await workflowRunner.RunAsync(workflow);
+
+        // Collect one of the bookmarks to resume the workflow
+        var bookmark = result.WorkflowState.Bookmarks.FirstOrDefault(x => x.ActivityId == "Event2");
+        await Assert.That(bookmark).IsNotNull();
+
+        // Resume the workflow
+        var runOptions = new RunWorkflowOptions { BookmarkId = bookmark.Id };
+        await workflowRunner.RunAsync(workflow, result.WorkflowState, runOptions);
+        var lines = _fixture.CapturingTextWriter.Lines.ToList();
+
+        // Assert
+        await Assert.That(lines).IsEquivalentTo(new[] { "Start", "Branch 2", "End" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [DisplayName("Fork with no branches completes successfully")]
+    public async Task Fork_WithNoBranchesCompletesSuccessfully()
+    {
+        // Act
+        await _fixture.RunWorkflowAsync(new EmptyForkWorkflow());
+        var lines = _fixture.CapturingTextWriter.Lines.ToList();
+
+        // Assert
+        await Assert.That(lines).IsEquivalentTo(new[] { "Before fork", "After fork" }, StringComparer.Ordinal, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    public ValueTask DisposeAsync() => TestResourceDisposal.DisposeAsync(_fixture);
+}

@@ -1,0 +1,143 @@
+using System.Text.Json.Nodes;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using Flamme.Api.Client.Resources.WorkflowDefinitions.Contracts;
+using Flamme.Api.Client.Resources.WorkflowDefinitions.Models;
+using Flamme.Workflows;
+using Flamme.Workflows.Activities;
+using Flamme.Workflows.ComponentTests.Abstractions;
+using Flamme.Workflows.ComponentTests.Fixtures;
+using Flamme.Workflows.Management;
+using Flamme.Workflows.Management.Filters;
+using Flamme.Workflows.Management.Materializers;
+using Microsoft.Extensions.DependencyInjection;
+using Refit;
+using WorkflowDefinitionEntity = Flamme.Workflows.Management.Entities.WorkflowDefinition;
+
+namespace Flamme.Workflows.ComponentTests.Scenarios.RestApis.Endpoints.WorkflowDefinitions.Import;
+
+public class ImportAuthorizationTests : AppComponentTest
+{
+    private IWorkflowDefinitionStore _store = null!;
+    private IActivitySerializer _activitySerializer = null!;
+    private IWorkflowDefinitionsApi _client = null!;
+
+    public ImportAuthorizationTests(App app) : base(app)
+    {
+    }
+
+    protected override ValueTask OnInitializeAsync()
+    {
+        _store = Scope.ServiceProvider.GetRequiredService<IWorkflowDefinitionStore>();
+        _activitySerializer = Scope.ServiceProvider.GetRequiredService<IActivitySerializer>();
+        _client = WorkflowServer.CreateApiClient<IWorkflowDefinitionsApi>();
+        return ValueTask.CompletedTask;
+    }
+
+    [Test]
+    public async Task ImportExistingReadOnlyDefinition_ShouldReturnForbiddenAndLeaveStorageUnchanged()
+    {
+        var definitionId = $"readonly-import-{Guid.NewGuid():N}";
+        await SaveDefinitionAsync(definitionId, "Original", isReadonly: true);
+
+        var exception = (await Assert.ThrowsExactlyAsync<ApiException>(() => _client.ImportAsync(CreateImportModel(definitionId, "Updated"))))!;
+
+        await Assert.That(exception.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await AssertDefinitionUnchangedAsync(definitionId, "Original", isReadonly: true);
+    }
+
+    [Test]
+    public async Task ImportFilesWithReadOnlyTarget_ShouldReturnForbiddenAndLeaveStorageUnchanged()
+    {
+        var writableDefinitionId = $"writable-import-files-{Guid.NewGuid():N}";
+        var readOnlyDefinitionId = $"readonly-import-files-{Guid.NewGuid():N}";
+        await SaveDefinitionAsync(writableDefinitionId, "Writable Original");
+        await SaveDefinitionAsync(readOnlyDefinitionId, "ReadOnly Original", isReadonly: true);
+
+        await using var writableStream = CreateImportStream(writableDefinitionId, "Writable Updated");
+        await using var readOnlyStream = CreateImportStream(readOnlyDefinitionId, "ReadOnly Updated");
+        var files = new List<StreamPart>
+        {
+            new(writableStream, "writable.json", "application/json"),
+            new(readOnlyStream, "readonly.json", "application/json")
+        };
+
+        var exception = (await Assert.ThrowsExactlyAsync<ApiException>(() => _client.ImportFilesAsync(files)))!;
+
+        await Assert.That(exception.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await AssertDefinitionUnchangedAsync(writableDefinitionId, "Writable Original");
+        await AssertDefinitionUnchangedAsync(readOnlyDefinitionId, "ReadOnly Original", isReadonly: true);
+    }
+
+    [Test]
+    public async Task ImportNewReadOnlyDefinition_ShouldSucceedAndPersistAsReadOnly()
+    {
+        var definitionId = $"new-readonly-import-{Guid.NewGuid():N}";
+
+        var importedDefinition = await _client.ImportAsync(CreateImportModel(definitionId, "New ReadOnly", isReadonly: true));
+
+        await Assert.That(importedDefinition.IsReadonly).IsTrue();
+        await AssertDefinitionUnchangedAsync(definitionId, "New ReadOnly", isReadonly: true);
+    }
+
+    [Test]
+    public async Task ImportFilesWithNewReadOnlyDefinition_ShouldSucceedAndPersistAsReadOnly()
+    {
+        var definitionId = $"new-readonly-import-files-{Guid.NewGuid():N}";
+
+        await using var stream = CreateImportStream(definitionId, "New ReadOnly", isReadonly: true);
+        var files = new List<StreamPart>
+        {
+            new(stream, "readonly.json", "application/json")
+        };
+
+        var response = await _client.ImportFilesAsync(files);
+
+        await Assert.That(response.Count).IsEqualTo(1);
+        await AssertDefinitionUnchangedAsync(definitionId, "New ReadOnly", isReadonly: true);
+    }
+
+    private async Task SaveDefinitionAsync(string definitionId, string name, bool isReadonly = false)
+    {
+        await _store.SaveAsync(new WorkflowDefinitionEntity
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            DefinitionId = definitionId,
+            Name = name,
+            CreatedAt = DateTimeOffset.UtcNow,
+            IsLatest = true,
+            IsReadonly = isReadonly,
+            MaterializerName = JsonWorkflowMaterializer.MaterializerName,
+            StringData = _activitySerializer.Serialize(new Sequence())
+        });
+    }
+
+    private async Task AssertDefinitionUnchangedAsync(string definitionId, string expectedName, bool isReadonly = false)
+    {
+        var definitions = (await _store.FindManyAsync(new WorkflowDefinitionFilter
+        {
+            DefinitionId = definitionId
+        })).ToList();
+
+        var definition = await Assert.That(definitions).HasSingleItem();
+        await Assert.That(definition.Name).IsEqualTo(expectedName);
+        await Assert.That(definition.IsReadonly).IsEqualTo(isReadonly);
+    }
+
+    private static WorkflowDefinitionModel CreateImportModel(string definitionId, string name, bool isReadonly = false)
+    {
+        return new()
+        {
+            DefinitionId = definitionId,
+            Name = name,
+            IsReadonly = isReadonly
+        };
+    }
+
+    private static MemoryStream CreateImportStream(string definitionId, string name, bool isReadonly = false)
+    {
+        var json = new JsonObject { ["definitionId"] = definitionId, ["name"] = name, ["isReadonly"] = isReadonly }.ToJsonString();
+        return new(Encoding.UTF8.GetBytes(json));
+    }
+}

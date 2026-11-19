@@ -1,0 +1,73 @@
+using Flamme.Extensions;
+using Flamme.Testing.Shared;
+using Flamme.Workflows.Activities;
+using System.Threading.Tasks;
+
+namespace Flamme.Workflows.Core.UnitTests.Extensions.ActivityExecutionContextExtensions;
+
+public class ExecutionChainTests
+{
+    [Test]
+    public async Task GetExecutionChain_PreventsInfiniteLoop_WhenCircularReferenceExists()
+    {
+        // Arrange
+        var root = new WriteLine("root");
+        var fixture = new ActivityTestFixture(root);
+        var contextRoot = await fixture.BuildAsync();
+        var w = contextRoot.WorkflowExecutionContext;
+        var clock = contextRoot.GetRequiredService<TimeProvider>();
+
+        var contextA = new ActivityExecutionContext("A", w, null, root, contextRoot.ActivityDescriptor, contextRoot.StartedAt, null, clock, default);
+        var contextB = new ActivityExecutionContext("B", w, null, root, contextRoot.ActivityDescriptor, contextRoot.StartedAt, null, clock, default);
+
+        // Create a cycle: A -> B -> A
+        contextA.SchedulingActivityExecutionId = "B";
+        contextB.SchedulingActivityExecutionId = "A";
+
+        // Register contexts in the same workflow execution context
+        w.AddActivityExecutionContext(contextA);
+        w.AddActivityExecutionContext(contextB);
+
+        // Act
+        var chain = contextA.GetExecutionChain().ToList();
+
+        // Assert
+        await Assert.That(chain.Count).IsEqualTo(2);
+        await Assert.That(chain[0].Id).IsEqualTo("B");
+        await Assert.That(chain[1].Id).IsEqualTo("A");
+    }
+
+    [Test]
+    public async Task GetExecutionChain_ReturnsFullChain_WhenNoCycles()
+    {
+        // Arrange
+        var root = new WriteLine("root");
+        var fixture = new ActivityTestFixture(root);
+        var contextRoot = await fixture.BuildAsync();
+        var w = contextRoot.WorkflowExecutionContext;
+        var clock = contextRoot.GetRequiredService<TimeProvider>();
+
+        var contextA = new ActivityExecutionContext("A", w, null, root, contextRoot.ActivityDescriptor, contextRoot.StartedAt, null, clock, default);
+        var contextB = new ActivityExecutionContext("B", w, null, root, contextRoot.ActivityDescriptor, contextRoot.StartedAt, null, clock, default);
+        var contextC = new ActivityExecutionContext("C", w, null, root, contextRoot.ActivityDescriptor, contextRoot.StartedAt, null, clock, default);
+
+        // Chain: A -> B -> C (A is leaf, C is root)
+        contextA.SchedulingActivityExecutionId = "B";
+        contextB.SchedulingActivityExecutionId = "C";
+        contextC.SchedulingActivityExecutionId = null;
+
+        // Register contexts in the same workflow execution context
+        w.AddActivityExecutionContext(contextA);
+        w.AddActivityExecutionContext(contextB);
+        w.AddActivityExecutionContext(contextC);
+
+        // Act
+        var chain = contextA.GetExecutionChain().ToList();
+
+        // Assert
+        await Assert.That(chain.Count).IsEqualTo(3);
+        await Assert.That(chain[0].Id).IsEqualTo("C");
+        await Assert.That(chain[1].Id).IsEqualTo("B");
+        await Assert.That(chain[2].Id).IsEqualTo("A");
+    }
+}

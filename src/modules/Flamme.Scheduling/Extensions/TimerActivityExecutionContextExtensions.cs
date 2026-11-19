@@ -1,0 +1,45 @@
+using Flamme.Common;
+using Flamme.Scheduling;
+using Flamme.Scheduling.Bookmarks;
+using Flamme.Workflows;
+using Flamme.Workflows.Models;
+
+// ReSharper disable once CheckNamespace
+namespace Flamme.Extensions;
+
+public static class TimerActivityExecutionContextExtensions
+{
+    /// <summary>
+    /// Repeats the execution of the current activity at the specified interval.
+    /// </summary>
+    /// <param name="context">The execution context of the activity.</param>
+    /// <param name="interval">The time interval after which the activity should be repeated.</param>
+    /// <param name="callback">An optional callback to execute immediately if the workflow is triggered.</param>
+    public static void RepeatWithInterval(this ActivityExecutionContext context, TimeSpan interval, ExecuteActivityDelegate? callback = null)
+    {
+        if(context.IsTriggerOfWorkflow())
+        {
+            callback?.Invoke(context);
+            return;
+        }
+        
+        var timeProvider = context.ExpressionExecutionContext.GetRequiredService<TimeProvider>();
+        var resumeAt = timeProvider.GetUtcNow().Add(interval);
+
+        var bookmarkOptions = new CreateBookmarkArgs
+        {
+            BookmarkName = SchedulingStimulusNames.Timer,
+            Stimulus = new TimerBookmarkPayload(resumeAt),
+            Callback = callback
+        };
+        context.CreateBookmark(bookmarkOptions);
+    }
+    
+    public static TimerTriggerPayload GetTimerTriggerStimulus(this TriggerIndexingContext context, TimeSpan interval)
+    {
+        var timeProvider = context.ExpressionExecutionContext.GetRequiredService<TimeProvider>();
+        var executeAt = timeProvider.GetUtcNow().Add(interval);
+        context.TriggerName = SchedulingStimulusNames.Timer;
+        return new(executeAt, interval);
+    }
+}

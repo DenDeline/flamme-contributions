@@ -1,0 +1,119 @@
+using Flamme.Http;
+using Flamme.Workflows.Activities;
+using Flamme.Workflows.ComponentTests.Abstractions;
+using Flamme.Workflows.ComponentTests.Fixtures;
+using Flamme.Workflows.Management;
+using Flamme.Workflows.Management.Entities;
+using Flamme.Workflows.Runtime;
+using Flamme.Workflows.Runtime.Entities;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Flamme.Workflows.ComponentTests.Scenarios.TriggerIndexingIdempotency;
+
+/// <summary>
+/// Tests that trigger indexing is idempotent: re-indexing an unchanged workflow should
+/// not produce any trigger changes (no delete-reinsert cycle).
+///
+/// The WorkflowTriggerEqualityComparer must use consistent serialization settings
+/// (matching IPayloadSerializer's camelCase convention) so that freshly computed triggers
+/// and DB-loaded triggers are correctly recognized as equal. Without this, the diff
+/// reports all triggers as changed on every indexing call, causing unnecessary churn
+/// and creating a window for unique constraint violations in multi-pod environments.
+/// </summary>
+public class TriggerIndexingIdempotencyTests(App app) : AppComponentTest(app)
+{
+    [Test]
+    [DisplayName("Re-indexing an unchanged workflow should not produce any trigger changes")]
+    public async Task ReIndexingUnchangedWorkflow_ShouldBeIdempotent()
+    {
+        // Arrange
+        var workflow = CreateTestWorkflow();
+        var definition = await SaveWorkflowDefinitionAsync(workflow);
+        var indexer = Scope.ServiceProvider.GetRequiredService<ITriggerIndexer>();
+
+        // Act: First indexing — triggers are inserted.
+        var firstResult = await indexer.IndexTriggersAsync(definition);
+        await Assert.That(firstResult.AddedTriggers).HasSingleItem();
+        await Assert.That(firstResult.RemovedTriggers).IsEmpty();
+
+        // Act: Second indexing — triggers already exist in the DB.
+        var secondResult = await indexer.IndexTriggersAsync(definition);
+
+        // Assert: The second indexing should be a no-op.
+        await Assert.That(secondResult.AddedTriggers).IsEmpty();
+        await Assert.That(secondResult.RemovedTriggers).IsEmpty();
+        await Assert.That(secondResult.UnchangedTriggers).HasSingleItem();
+    }
+
+    [Test]
+    [DisplayName("Re-indexing should preserve trigger IDs when nothing changed")]
+    public async Task ReIndexingUnchangedWorkflow_ShouldPreserveTriggerIds()
+    {
+        // Arrange
+        var workflow = CreateTestWorkflow();
+        var definition = await SaveWorkflowDefinitionAsync(workflow);
+        var indexer = Scope.ServiceProvider.GetRequiredService<ITriggerIndexer>();
+
+        // Act: Index twice.
+        await indexer.IndexTriggersAsync(definition);
+        var originalTriggerId = (await GetTriggersAsync(workflow.Identity.DefinitionId)).Single().Id;
+
+        await indexer.IndexTriggersAsync(definition);
+        var triggerIdAfterSecondIndex = (await GetTriggersAsync(workflow.Identity.DefinitionId)).Single().Id;
+
+        // Assert: The trigger ID should be preserved — no delete-reinsert happened.
+        await Assert.That(triggerIdAfterSecondIndex).IsEqualTo(originalTriggerId);
+    }
+
+    private static Workflow CreateTestWorkflow()
+    {
+        var definitionId = Guid.NewGuid().ToString();
+        var workflowId = Guid.NewGuid().ToString();
+
+        return new()
+        {
+            Identity = new(definitionId, 1, workflowId),
+            Root = new Sequence
+            {
+                Activities =
+                {
+                    new HttpEndpoint
+                    {
+                        Path = new($"/blob-import-test/{Guid.NewGuid()}"),
+                        SupportedMethods = new(["GET"]),
+                        CanStartWorkflow = true
+                    }
+                }
+            },
+            Publication = new(IsLatest: true, IsPublished: true)
+        };
+    }
+
+    private async Task<WorkflowDefinition> SaveWorkflowDefinitionAsync(Workflow workflow)
+    {
+        var workflowDefinitionStore = Scope.ServiceProvider.GetRequiredService<IWorkflowDefinitionStore>();
+        var activitySerializer = Scope.ServiceProvider.GetRequiredService<IActivitySerializer>();
+
+        var definition = new WorkflowDefinition
+        {
+            Id = workflow.Identity.Id,
+            DefinitionId = workflow.Identity.DefinitionId,
+            Version = workflow.Identity.Version,
+            IsLatest = true,
+            IsPublished = true,
+            Name = "Blob Import Test Workflow",
+            Description = "Simulates a workflow imported from blob storage",
+            MaterializerName = "Json",
+            StringData = activitySerializer.Serialize(workflow.Root)
+        };
+
+        await workflowDefinitionStore.SaveAsync(definition);
+        return definition;
+    }
+
+    private async Task<List<StoredTrigger>> GetTriggersAsync(string workflowDefinitionId)
+    {
+        var triggerStore = Scope.ServiceProvider.GetRequiredService<ITriggerStore>();
+        return (await triggerStore.FindManyAsync(new() { WorkflowDefinitionId = workflowDefinitionId })).ToList();
+    }
+}

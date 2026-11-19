@@ -1,0 +1,53 @@
+using Flamme.Authorization;
+using Flamme.Abstractions;
+using Flamme.Alterations.Core.Contracts;
+using Flamme.Alterations.Core.Filters;
+using JetBrains.Annotations;
+
+namespace Flamme.Alterations.Endpoints.Alterations.Get;
+
+/// <summary>
+/// Gets an alteration plan and its associated jobs.
+/// </summary>
+[PublicAPI]
+public class Get : FlammeEndpointWithoutRequest<Response>
+{
+    private readonly IAlterationPlanStore _alterationPlanStore;
+    private readonly IAlterationJobStore _alterationJobStore;
+
+    /// <inheritdoc />
+    public Get(IAlterationPlanStore alterationPlanStore, IAlterationJobStore alterationJobStore)
+    {
+        _alterationPlanStore = alterationPlanStore;
+        _alterationJobStore = alterationJobStore;
+    }
+
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Get("/alterations/{id}");
+        RequirePermission(Flamme.Alterations.Permissions.AlterationPermissions.Alterations, CoreVerbs.View);
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(CancellationToken cancellationToken)
+    {
+        var planId = Route<string>("id");
+
+        // Load the plan.
+        var plan = await _alterationPlanStore.FindAsync(new AlterationPlanFilter { Id = planId }, cancellationToken);
+
+        if (plan == null)
+        {
+            await Send.NotFoundAsync(cancellationToken);
+            return;
+        }
+
+        // Load the jobs.
+        var jobs = (await _alterationJobStore.FindManyAsync(new AlterationJobFilter { PlanId = planId }, cancellationToken)).ToList();
+
+        // Write response.
+        var response = new Response(plan, jobs);
+        await Send.OkAsync(response, cancellationToken);
+    }
+}

@@ -1,0 +1,111 @@
+using Flamme.Common.Multitenancy;
+using Flamme.Workflows.Management.Activities.HostMethod;
+using Flamme.Workflows.Management.Activities.WorkflowDefinitionActivity;
+using Flamme.Workflows.Management.Providers;
+using Flamme.Workflows.Management.Services;
+using Flamme.Workflows.Models;
+using Microsoft.Extensions.Logging;
+using TUnit.Mocks;
+
+namespace Flamme.Workflows.Management.UnitTests.Services;
+
+public class ActivityRegistryPopulatorTests
+{
+    [Test]
+    public async Task EnsureRegistryPopulatedAsync_InitializesAgnosticProvidersOnceAcrossScopedPopulators_AndRefreshesTenantSensitiveProvidersPerPass()
+    {
+        // Arrange
+        var agnosticProviderCallCount = new CallCounter();
+        var tenantSensitiveProviderCallCount = new CallCounter();
+        var registry = CreateRegistry();
+        IActivityRegistryPopulator firstScopePopulator = new ActivityRegistryPopulator(
+            [new CountingTenantAgnosticProvider(agnosticProviderCallCount), new CountingTenantSensitiveProvider(tenantSensitiveProviderCallCount)], registry);
+        IActivityRegistryPopulator secondScopePopulator = new ActivityRegistryPopulator(
+            [new CountingTenantAgnosticProvider(agnosticProviderCallCount), new CountingTenantSensitiveProvider(tenantSensitiveProviderCallCount)], registry);
+
+        // Act
+        await firstScopePopulator.EnsureRegistryPopulatedAsync();
+        await secondScopePopulator.EnsureRegistryPopulatedAsync();
+
+        // Assert
+        await Assert.That(agnosticProviderCallCount.Value).IsEqualTo(1);
+        await Assert.That(tenantSensitiveProviderCallCount.Value).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task PopulateRegistryAsync_ForceRefreshesAllProvidersOnEveryPass()
+    {
+        // Arrange
+        var agnosticProviderCallCount = new CallCounter();
+        var tenantSensitiveProviderCallCount = new CallCounter();
+        var agnosticProvider = new CountingTenantAgnosticProvider(agnosticProviderCallCount);
+        var tenantSensitiveProvider = new CountingTenantSensitiveProvider(tenantSensitiveProviderCallCount);
+        IActivityRegistryPopulator populator = new ActivityRegistryPopulator([agnosticProvider, tenantSensitiveProvider], CreateRegistry());
+
+        // Act
+        await populator.PopulateRegistryAsync();
+        await populator.PopulateRegistryAsync();
+
+        // Assert
+        await Assert.That(agnosticProviderCallCount.Value).IsEqualTo(2);
+        await Assert.That(tenantSensitiveProviderCallCount.Value).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task BuiltInTenantAgnosticProviders_OptIntoOncePerRegistryPopulation()
+    {
+        await Assert.That(typeof(ITenantAgnosticActivityProvider).IsAssignableFrom(typeof(TypedActivityProvider))).IsTrue();
+        await Assert.That(typeof(ITenantAgnosticActivityProvider).IsAssignableFrom(typeof(HostMethodActivityProvider))).IsTrue();
+        await Assert.That(typeof(ITenantAgnosticActivityProvider).IsAssignableFrom(typeof(WorkflowDefinitionActivityProvider))).IsFalse();
+    }
+
+    private static ActivityRegistry CreateRegistry()
+    {
+        var tenantAccessor = ITenantAccessor.Mock().Object;
+        Mock.Get(tenantAccessor).TenantId.Returns("tenant-1");
+        return new ActivityRegistry(
+            IActivityDescriber.Mock().Object,
+            [],
+            tenantAccessor,
+            ILogger<ActivityRegistry>.Mock().Object);
+    }
+
+    private sealed class CountingTenantAgnosticProvider(CallCounter callCounter) : ITenantAgnosticActivityProvider
+    {
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
+        {
+            callCounter.Increment();
+            return new([new ActivityDescriptor
+            {
+                TypeName = nameof(CountingTenantAgnosticProvider),
+                Version = 1,
+                TenantId = Tenant.AgnosticTenantId,
+                Kind = ActivityKind.Action
+            }]);
+        }
+    }
+
+    private sealed class CountingTenantSensitiveProvider(CallCounter callCounter) : IActivityProvider
+    {
+        public ValueTask<IEnumerable<ActivityDescriptor>> GetDescriptorsAsync(CancellationToken cancellationToken = default)
+        {
+            callCounter.Increment();
+            return new([new ActivityDescriptor
+            {
+                TypeName = nameof(CountingTenantSensitiveProvider),
+                Version = 1,
+                TenantId = "tenant-1",
+                Kind = ActivityKind.Action
+            }]);
+        }
+    }
+
+    private sealed class CallCounter
+    {
+        private int _value;
+
+        public int Value => Volatile.Read(ref _value);
+
+        public void Increment() => Interlocked.Increment(ref _value);
+    }
+}

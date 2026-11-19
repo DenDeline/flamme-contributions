@@ -4,7 +4,7 @@
 
 Flamme is preparing its first independent release. Security fixes currently target the latest `main` branch. There is no supported Flamme release series or commitment to backport fixes to older commits yet; review the release notes and this policy when releases become available.
 
-Flamme is an independent fork of Elsa Workflows. Upstream Elsa releases and packages have their own maintenance policies. Retained `Elsa.*` identifiers do not make a Flamme build an upstream Elsa release.
+Flamme is an independent fork of Elsa Workflows. Upstream Elsa releases and packages have their own maintenance policies.
 
 ## Report a vulnerability privately
 
@@ -18,6 +18,6 @@ The maintainer will assess reports and coordinate investigation, fixes, and disc
 
 ## Deployment and historical assessments
 
-The reference server is a development host. Follow its [configuration notes](src/apps/Elsa.Server.Web/README.md), the [identity and tenancy guide](doc/wiki/identity-tenancy-security.md), and the [scripting trust boundaries](doc/wiki/expressions-and-scripting.md) before exposing a host to untrusted users.
+The reference server is a development host. Follow its [configuration notes](src/apps/Flamme.Server.Web/README.md), the [identity and tenancy guide](doc/wiki/identity-tenancy-security.md), and the [scripting trust boundaries](doc/wiki/expressions-and-scripting.md) before exposing a host to untrusted users.
 
 The [security assessment directory](doc/security-assessment/README.md) contains historical, AI-assisted draft material. Its dated observations and severity labels are not a list of confirmed current vulnerabilities or a security certification. The [reconciliation record](doc/security-assessment/elsa-workflows-elsa-core-findings-2026-05-20.md) distinguishes current implementation evidence from validation still needed.

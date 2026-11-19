@@ -1,0 +1,56 @@
+﻿using System.Net;
+using Flamme.Workflows.ComponentTests.Abstractions;
+using Flamme.Workflows.ComponentTests.Fixtures;
+using Flamme.Workflows.ComponentTests.Services;
+using Flamme.Workflows.Runtime;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Flamme.Workflows.ComponentTests.Scenarios.WorkflowDefinitionRefresh;
+
+public class DynamicEndpointTests : AppComponentTest
+{
+    private TestJavaScriptState? _javaScriptState;
+    private IWorkflowDefinitionsRefresher _workflowDefinitionsRefresher = null!;
+
+    public DynamicEndpointTests(App app) : base(app)
+    {
+    }
+
+    protected override ValueTask OnInitializeAsync()
+    {
+        _javaScriptState = Scope.ServiceProvider.GetRequiredService<TestJavaScriptState>();
+        _javaScriptState.Value = "first-value";
+        _workflowDefinitionsRefresher = Scope.ServiceProvider.GetRequiredService<IWorkflowDefinitionsRefresher>();
+        return ValueTask.CompletedTask;
+    }
+
+    protected override ValueTask OnDisposeAsync()
+    {
+        if (_javaScriptState is not null)
+        {
+            _javaScriptState.Value = null;
+            _javaScriptState = null;
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    [Test]
+    public async Task ChangingEndpointValueThenRefresh_WorkflowShouldRespondToTheNewValue()
+    {
+        var client = WorkflowServer.CreateHttpWorkflowClient();
+
+        using var firstRequest = new HttpRequestMessage(HttpMethod.Get, "first-value");
+        using var firstResponse = await client.SendAsync(firstRequest);
+
+        _javaScriptState!.Value = "second-value";
+        _ = await _workflowDefinitionsRefresher.RefreshWorkflowDefinitionsAsync(
+            new() { DefinitionIds = ["f69f061159adc3ae"] }, CancellationToken.None);
+
+        using var secondRequest = new HttpRequestMessage(HttpMethod.Get, "second-value");
+        using var secondResponse = await client.SendAsync(secondRequest);
+
+        await Assert.That(firstResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(secondResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+}

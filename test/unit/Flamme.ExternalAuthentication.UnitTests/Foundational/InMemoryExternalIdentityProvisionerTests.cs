@@ -1,0 +1,118 @@
+using Microsoft.Extensions.Time.Testing;
+using Flamme.Testing.Shared.Multitenancy;
+using Flamme.Common.Services;
+using Flamme.ExternalAuthentication.Contracts;
+using Flamme.ExternalAuthentication.Models;
+using Flamme.ExternalAuthentication.Services;
+using Flamme.Identity.Contracts;
+using Flamme.Identity.Entities;
+using Flamme.Identity.Models;
+using Flamme.Identity.Providers;
+using Flamme.Identity.Services;
+using Flamme.Workflows;
+using System.Threading.Tasks;
+
+namespace Flamme.ExternalAuthentication.UnitTests.Foundational;
+
+public class InMemoryExternalIdentityProvisionerTests
+{
+    [Test]
+    public async Task RemovesLinkWhenUserDeletionWinsThePublicationRace()
+    {
+        var users = new MemoryUserStore(new MemoryStore<User>(), new TestTenantAccessor("tenant-a"));
+        await users.SaveAsync(new User { Id = "user-a", Name = "alice", TenantId = "tenant-a" });
+        var provider = new DeleteAfterResolveUserProvider(new StoreBasedUserProvider(users), users);
+        using var hasher = new HmacExternalAuthenticationHandleHasher();
+        var provisioner = new InMemoryExternalIdentityProvisioner(
+            users,
+            provider,
+            IRoleProvider.Mock().Object,
+            new GuidIdentityGenerator(),
+            new FakeTimeProvider(DateTimeOffset.UtcNow),
+            hasher,
+            new InMemoryExternalIdentityProvisionerState());
+        var request = new ProvisioningRequest(
+            "tenant-a",
+            "contoso",
+            new ExternalIdentity("https://issuer.example", "subject-a", new Dictionary<string, IReadOnlyCollection<string>>()),
+            null,
+            "user-a");
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => provisioner.CreateLinkOrGetExistingAsync(request).AsTask());
+
+        await Assert.That(await users.FindAsync(new UserFilter { Id = "user-a" })).IsNull();
+        await Assert.That((await provisioner.FindAsync(new ExternalIdentityLinkFilter { TenantId = "tenant-a" })).Items).IsEmpty();
+    }
+
+    [Test]
+    public async Task RemovesRestoredLinkWhenBothReplacementUsersAreDeleted()
+    {
+        var users = new MemoryUserStore(new MemoryStore<User>(), new TestTenantAccessor("tenant-a"));
+        await users.SaveAsync(new User { Id = "user-a", Name = "alice", TenantId = "tenant-a" });
+        await users.SaveAsync(new User { Id = "user-b", Name = "bob", TenantId = "tenant-a" });
+        using var hasher = new HmacExternalAuthenticationHandleHasher();
+        var state = new InMemoryExternalIdentityProvisionerState();
+        var originalProvisioner = CreateProvisioner(users, new StoreBasedUserProvider(users), hasher, state);
+        var identity = new ExternalIdentity("https://issuer.example", "subject-a", new Dictionary<string, IReadOnlyCollection<string>>());
+        var oldLink = (await originalProvisioner.CreateLinkOrGetExistingAsync(
+            new ProvisioningRequest("tenant-a", "contoso", identity, null, "user-a"))).Link;
+        var racingProvider = new DeleteOnSelectedFindUserProvider(new StoreBasedUserProvider(users), users, 2, 3);
+        var racingProvisioner = CreateProvisioner(users, racingProvider, hasher, state);
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => racingProvisioner.ReplaceAsync(
+            new ExternalIdentityLinkReplaceRequest(
+                "tenant-a",
+                oldLink.Id,
+                "user-b",
+                "contoso",
+                new ExternalIdentity("https://issuer.example", "subject-b", new Dictionary<string, IReadOnlyCollection<string>>()))).AsTask());
+
+        await Assert.That(await users.FindAsync(new UserFilter { Id = "user-a" })).IsNull();
+        await Assert.That(await users.FindAsync(new UserFilter { Id = "user-b" })).IsNull();
+        await Assert.That((await racingProvisioner.FindAsync(new ExternalIdentityLinkFilter { TenantId = "tenant-a" })).Items).IsEmpty();
+    }
+
+    private static InMemoryExternalIdentityProvisioner CreateProvisioner(
+        IUserStore users,
+        IUserProvider provider,
+        IExternalAuthenticationHandleHasher hasher,
+        InMemoryExternalIdentityProvisionerState state) => new(
+        users,
+        provider,
+        IRoleProvider.Mock().Object,
+        new GuidIdentityGenerator(),
+        new FakeTimeProvider(DateTimeOffset.UtcNow),
+        hasher,
+        state);
+
+    private sealed class DeleteAfterResolveUserProvider(IUserProvider inner, IUserStore users) : IUserProvider
+    {
+        private int _findCount;
+
+        public async Task<User?> FindAsync(UserFilter filter, CancellationToken cancellationToken = default)
+        {
+            var user = await inner.FindAsync(filter, cancellationToken);
+            if (user is not null && Interlocked.Increment(ref _findCount) == 1)
+                await users.DeleteAsync(new UserFilter { Id = user.Id }, cancellationToken);
+            return user;
+        }
+    }
+
+    private sealed class DeleteOnSelectedFindUserProvider(IUserProvider inner, IUserStore users, params int[] deletionCounts) : IUserProvider
+    {
+        private readonly HashSet<int> _deletionCounts = deletionCounts.ToHashSet();
+        private int _findCount;
+
+        public async Task<User?> FindAsync(UserFilter filter, CancellationToken cancellationToken = default)
+        {
+            var user = await inner.FindAsync(filter, cancellationToken);
+            if (user is not null && _deletionCounts.Contains(Interlocked.Increment(ref _findCount)))
+            {
+                await users.DeleteAsync(new UserFilter { Id = user.Id }, cancellationToken);
+                return null;
+            }
+
+            return user;
+        }
+    }
+}

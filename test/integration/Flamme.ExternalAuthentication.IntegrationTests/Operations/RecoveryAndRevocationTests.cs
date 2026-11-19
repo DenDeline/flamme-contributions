@@ -1,0 +1,45 @@
+using Microsoft.Extensions.Time.Testing;
+using Flamme.Authorization;
+using System.Security.Claims;
+using Flamme.ExternalAuthentication.Contracts;
+using Flamme.ExternalAuthentication.Models;
+using Flamme.ExternalAuthentication.Options;
+using Flamme.ExternalAuthentication.Services;
+using Flamme.ExternalAuthentication.Stores.InMemory;
+using Microsoft.Extensions.Options;
+
+namespace Flamme.ExternalAuthentication.IntegrationTests.Operations;
+
+public class RecoveryAndRevocationTests
+{
+    [Test]
+    public async Task FinalNormalConnectionRequiresBreakGlassOrConfirmedPrivilegedOverride()
+    {
+        var registry = IIdentityProviderConnectionRegistry.Mock().Object;
+        Mock.Get(registry).GetAsync("tenant-a", Arg.Any<CancellationToken>()).ReturnsAsync(ValueTask.FromResult(new EffectiveConnectionRegistry([], [], "1")));
+        var options = Microsoft.Extensions.Options.Options.Create(new ExternalAuthenticationOptions { LocalLogin = new LocalLoginMethodOptions { IsEnabled = false } });
+        var guard = new FinalLoginPathGuard(registry, options, new PermissionEvaluator());
+        var existing = Connection(enabled: true);
+        var disabled = Connection(enabled: false);
+
+        await Assert.That(await guard.AuthorizeAsync(existing, disabled, "tenant-a", new ClaimsPrincipal(new ClaimsIdentity()), false)).IsEqualTo(FinalLoginPathGuardResult.Denied);
+        var privileged = new ClaimsPrincipal(new ClaimsIdentity([new Claim(Flamme.PermissionNames.ClaimType, options.Value.FinalLoginPathGuard.PrivilegedOverridePermission)]));
+        await Assert.That(await guard.AuthorizeAsync(existing, disabled, "tenant-a", privileged, true)).IsEqualTo(FinalLoginPathGuardResult.Allowed);
+        options.Value.FinalLoginPathGuard.HasBreakGlassAuthentication = true;
+        await Assert.That(await guard.AuthorizeAsync(existing, disabled, "tenant-a", new ClaimsPrincipal(), false)).IsEqualTo(FinalLoginPathGuardResult.Allowed);
+    }
+
+    [Test]
+    public async Task RevokedExternalSessionCannotRemainActive()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var store = new InMemoryExternalAuthenticationSessionStore(new FakeTimeProvider(now));
+        var session = new ExternalAuthenticationSession { Id = "s", TenantId = "tenant-a", UserId = "u", ConnectionKey = "idp", AuthenticationClientId = "client", ConnectionMaterialRevision = "r", Issuer = "https://issuer", SubjectHash = "h", StartedAt = now, LastRefreshedAt = now, ExpiresAt = now.AddHours(1), RefreshExpiresAt = now.AddHours(1), CurrentRefreshTokenHash = "refresh" };
+        await store.SaveAsync(session);
+        await Assert.That(await store.RevokeAsync(session.Id, "administrator_revoked", now)).IsTrue();
+        await Assert.That(await store.FindAsync(new ExternalAuthenticationSessionFilter { TenantId = "tenant-a", Status = "revoked" })).HasSingleItem();
+    }
+
+    private static IdentityProviderConnection Connection(bool enabled) => new() { Id = "connection-a", TenantId = "tenant-a", Key = "idp", AdapterType = "test", DisplayName = "IdP", IsEnabled = enabled };
+
+}

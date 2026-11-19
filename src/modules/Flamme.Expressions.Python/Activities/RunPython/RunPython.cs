@@ -1,0 +1,72 @@
+﻿using System.Runtime.CompilerServices;
+using Flamme.Extensions;
+using Flamme.Expressions.Python.Contracts;
+using Flamme.Expressions.Python.Models;
+using Flamme.Workflows;
+using Flamme.Workflows.Attributes;
+using Flamme.Workflows.UIHints;
+using Flamme.Workflows.Models;
+
+// ReSharper disable once CheckNamespace
+namespace Flamme.Expressions.Python.Activities;
+
+/// <summary>
+/// Executes Python code.
+/// </summary>
+[Activity(WorkflowScriptActivityTypeNames.Namespace, WorkflowScriptActivityTypeNames.RunPythonType, 1, "Executes Python code", "Scripting", DisplayName = "Run Python")]
+public class RunPython : CodeActivity<object?>
+{
+    /// <inheritdoc />
+    public RunPython([CallerFilePath] string? source = null, [CallerLineNumber] int? line = null) : base(source, line)
+    {
+    }
+
+    /// <inheritdoc />
+    public RunPython(string script, [CallerFilePath] string? source = null, [CallerLineNumber] int? line = null) : this(source, line)
+    {
+        Script = new Input<string>(script);
+    }
+    
+    /// <summary>
+    /// The script to run.
+    /// </summary>
+    [Input(
+        Description = "The script to run.",
+        DefaultSyntax = "Python",
+        UIHint = InputUIHints.CodeEditor,
+        UIHandler = typeof(RunPythonOptionsProvider)
+    )]
+    public Input<string> Script { get; set; } = new("");
+
+    /// <summary>
+    /// A list of possible outcomes. Use "SetOutcome(string)" to set the outcome. Use "SetOutcomes(params string[])" to set multiple outcomes.
+    /// </summary>
+    [Input(Description = "A list of possible outcomes.", UIHint = InputUIHints.DynamicOutcomes)]
+    public Input<ICollection<string>> PossibleOutcomes { get; set; } = null!;
+    
+    /// <inheritdoc />
+    protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
+    {
+        var script = context.Get(Script);
+
+        // If no script was specified, there's nothing to do.
+        if (string.IsNullOrWhiteSpace(script))
+            return;
+
+        // Get a Python evaluator.
+        var evaluator = context.GetRequiredService<IPythonEvaluator>();
+
+        // Run the script.
+        var result = await evaluator.EvaluateAsync(script, typeof(object), context.ExpressionExecutionContext, context.CancellationToken);
+
+        // Set the result as output, if any.
+        if (result is not null)
+            context.Set(Result, result);
+
+        // Get the outcome or outcomes set by the script, if any. If not set, use "Done".
+        var outcomes = context.ExpressionExecutionContext.TransientProperties.GetValueOrDefault(OutcomeProxy.OutcomePropertiesKey, () => new[] { "Done" })!;
+
+        // Complete the activity with the outcome.
+        await context.CompleteActivityWithOutcomesAsync(outcomes);
+    }
+}

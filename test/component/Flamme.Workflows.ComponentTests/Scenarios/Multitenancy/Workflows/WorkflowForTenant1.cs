@@ -1,0 +1,16 @@
+using Flamme.Workflows.Activities;
+using JetBrains.Annotations;
+
+namespace Flamme.Workflows.ComponentTests.Scenarios.Multitenancy.Workflows;
+
+[UsedImplicitly]
+public class WorkflowForTenant1 : WorkflowBase
+{
+    public static readonly string DefinitionId = Guid.NewGuid().ToString(); 
+    protected override void Build(IWorkflowBuilder builder)
+    {
+        builder.WithDefinitionId(DefinitionId);
+        builder.WithTenantId("Tenant1");
+        builder.Root = new WriteLine("Tenant1");
+    }
+}
