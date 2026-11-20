@@ -1,0 +1,46 @@
+{
+  "commit": "9dfd666fe2d645d931e0be6f178565d09cfece17",
+  "measured_requests": 588,
+  "case_summary": [
+    {
+      "operation": "resume",
+      "case": "control",
+      "before_release": [
+        null,
+        null,
+        null
+      ],
+      "median_trial_p95_ms": 43.4
+    },
+    {
+      "operation": "resume",
+      "case": "held",
+      "before_release": [
+        48,
+        48,
+        48
+      ],
+      "median_trial_p95_ms": 37.6
+    },
+    {
+      "operation": "import",
+      "case": "control",
+      "before_release": [
+        null,
+        null,
+        null
+      ],
+      "median_trial_p95_ms": 15.1
+    },
+    {
+      "operation": "import",
+      "case": "held",
+      "before_release": [
+        48,
+        48,
+        48
+      ],
+      "median_trial_p95_ms": 16.7
+    }
+  ]
+}

@@ -41,3 +41,7 @@ All 192 timed calls passed durable verification, along with all warmups and 24 s
 | 500, half-new | 25 (15 ownership SELECT + 10 native upsert) | 13 (2 catalog SELECT + 1 table lock + 10 guarded upsert) | 2 (1 ownership SELECT + one batch of 250 UPDATE and 250 INSERT) |
 
 The number of statements inside the candidate DML batch grows with the row count. The elapsed timings include mapping detached entries, save handlers, client batching, network I/O, PostgreSQL execution, and commit acknowledgement. The timing aggregates these costs and applies to this local workload.
+
+## Final PR verification
+
+At `9dfd666fe`, the median for 16 updates to 500 existing rows was 61.11 ms, compared with 43.92 ms on the preceding PR and 50.64 ms on main. For 50 existing rows it was 8.12 ms, compared with 5.49 ms and 4.55 ms, respectively. The final medians for 50 and 500 half-new rows were 6.79 ms and 54.94 ms. The 64 measured calls used two fresh reference-host processes and PostgreSQL 16.15. All eight readbacks and the separate traced writes passed. [Final raw batch trials](../results/published-activity-batches.jsonl)
