@@ -1,0 +1,198 @@
+{
+  "label": "main-7185fa3f2",
+  "container": "7030f9b2a169fdbf21c40d203dcb9a8de83eab9d109e8cbf08b013e315ebea40",
+  "definition": "store-bench-f1f9242091f64ce7a36170e3871c9790",
+  "postgres_image": "sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657",
+  "postgres_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+  "method": "Dedicated disposable database. PostgreSQL log_statement=all, log_parameter_max_length=0. Bounds are two SQL markers around one completed HTTP call. No other benchmark traffic. Counts include SQL received from any other backend in that window, including possible background work. BEGIN/COMMIT counts are explicit SQL only. One statement may share a wire/batched command with others. The physical-index category matches pg_catalog.pg_index. The advisory call can itself contain a relation lookup. 'other' SQL is fingerprinted only.",
+  "operations": {
+    "resume": {
+      "counts": {
+        "begin": 1,
+        "commit": 1,
+        "rollback": 0,
+        "advisory_xact_lock": 0,
+        "physical_index_probe": 0,
+        "activity_table_lock": 0,
+        "instance_owner_projection": 0,
+        "activity_owner_projection": 1,
+        "instance_exists": 1,
+        "instance_update": 1,
+        "activity_upsert": 1,
+        "activity_insert": 0,
+        "activity_update": 0,
+        "bookmark_delete": 1,
+        "journal_insert": 3,
+        "other": 14
+      },
+      "server_command_records": 24,
+      "by_postgres_pid": {
+        "88": {
+          "other": 6,
+          "bookmark_delete": 1,
+          "begin": 1,
+          "journal_insert": 3,
+          "commit": 1
+        },
+        "103": {
+          "other": 4,
+          "activity_owner_projection": 1,
+          "instance_exists": 1
+        },
+        "87": {
+          "other": 4,
+          "activity_upsert": 1,
+          "instance_update": 1
+        }
+      },
+      "statements": [
+        {
+          "category": "other",
+          "sha256": "98f36323c6bcf3d04d4b423d63caa325d692376ef457a4c1b41c27023a19ebf4",
+          "count": 10,
+          "verb": "DISCARD",
+          "workflow_tables": []
+        },
+        {
+          "category": "other",
+          "sha256": "1509c5f6edaf64fc70c225dae7bb5a767e1e88860acc4048147329bed8d2caa2",
+          "count": 1,
+          "verb": "SELECT",
+          "workflow_tables": [
+            "Bookmarks"
+          ]
+        },
+        {
+          "category": "other",
+          "sha256": "3f76865c3769438b218ef7d2d9739ab6c6954f7fa487dfc4a376939c6595a39b",
+          "count": 1,
+          "verb": "SELECT",
+          "workflow_tables": [
+            "WorkflowInstances"
+          ]
+        },
+        {
+          "category": "other",
+          "sha256": "20a70329c433e9f9528e51240759e927ba1b66ee6bc637f7773e8436a245bc98",
+          "count": 1,
+          "verb": "SELECT",
+          "workflow_tables": [
+            "Bookmarks"
+          ]
+        },
+        {
+          "category": "bookmark_delete",
+          "sha256": "69d29eb4bc056ad20dba5a42af2957b51b77029cf5ae881d34a9d5263fa5ad80",
+          "count": 1,
+          "sql": "DELETE FROM \"Elsa\".\"Bookmarks\" AS b WHERE (b.\"TenantId\" = $1 OR b.\"TenantId\" = '?' OR (b.\"TenantId\" IS NULL AND $2)) AND b.\"Id\" = ANY ($3) AND b.\"WorkflowInstanceId\" = $4"
+        },
+        {
+          "category": "activity_owner_projection",
+          "sha256": "ef27ee4a46ce00a891b3098cb6f59fcee6815567ea953cb639fc14c2eb5f73c3",
+          "count": 1,
+          "sql": "SELECT a.\"Id\", a.\"TenantId\" FROM \"Elsa\".\"ActivityExecutionRecords\" AS a WHERE a.\"Id\" = ANY ($1)"
+        },
+        {
+          "category": "activity_upsert",
+          "sha256": "2c6020088f36dd9f43df8a2cdd07e99c65cf8014bf74fc0bc4bc06f5d893ffe3",
+          "count": 1,
+          "sql": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDepth\", \"CompletedAt\", \"HasBookmarks\", \"SchedulingActivityExecutionId\", \"SchedulingActivityId\", \"SchedulingWorkflowInstanceId\", \"SerializedActivityState\", \"SerializedActivityStateCompressionAlgorithm\", \"SerializedException\", \"SerializedMetadata\", \"SerializedOutputs\", \"SerializedPayload\", \"SerializedProperties\", \"StartedAt\", \"Status\", \"TenantId\", \"WorkflowInstanceId \u2026 puts\" = EXCLUDED.\"SerializedOutputs\", \"SerializedPayload\" = EXCLUDED.\"SerializedPayload\", \"SerializedProperties\" = EXCLUDED.\"SerializedProperties\", \"StartedAt\" = EXCLUDED.\"StartedAt\", \"Status\" = EXCLUDED.\"Status\", \"TenantId\" = EXCLUDED.\"TenantId\", \"WorkflowInstanceId\" = EXCLUDED.\"WorkflowInstanceId\""
+        },
+        {
+          "category": "begin",
+          "sha256": "6329faa5fd0065eee6d5559876aedd0e6c9ec1e7da57524f5a046395f48c1b2d",
+          "count": 1,
+          "sql": "BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED"
+        },
+        {
+          "category": "journal_insert",
+          "sha256": "944eb95ad9044078a4dbf8d8f728dbad4d5632d8a356b65148abcb96d982b31e",
+          "count": 3,
+          "sql": "INSERT INTO \"Elsa\".\"WorkflowExecutionLogRecords\" (\"Id\", \"ActivityId\", \"ActivityInstanceId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"EventName\", \"Message\", \"ParentActivityInstanceId\", \"Sequence\", \"SerializedActivityState\", \"SerializedPayload\", \"Source\", \"TenantId\", \"Timestamp\", \"WorkflowDefinitionId\", \"WorkflowDefinitionVersionId\", \"WorkflowInstanceId\", \"WorkflowVersion\") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)"
+        },
+        {
+          "category": "commit",
+          "sha256": "79663c1d3b43ceaf9ee728e501c64b57ae2e4d6cb36ff5c65eddcda1de27342f",
+          "count": 1,
+          "sql": "COMMIT"
+        },
+        {
+          "category": "instance_exists",
+          "sha256": "eab1e7c55bca9746f335f0cefdd88425ceeeef52ec111b1aa4118ee39f1d3013",
+          "count": 1,
+          "sql": "SELECT EXISTS ( SELECT 1 FROM \"Elsa\".\"WorkflowInstances\" AS w WHERE (w.\"TenantId\" = $1 OR w.\"TenantId\" = '?' OR (w.\"TenantId\" IS NULL AND $2)) AND w.\"Id\" = '?')"
+        },
+        {
+          "category": "instance_update",
+          "sha256": "a9ade5d1b8044c913608416a0f80b1741fbf52504814d4f235c55f4e545d55a4",
+          "count": 1,
+          "sql": "UPDATE \"Elsa\".\"WorkflowInstances\" SET \"CorrelationId\" = $1, \"CreatedAt\" = $2, \"Data\" = $3, \"DataCompressionAlgorithm\" = $4, \"DefinitionId\" = $5, \"DefinitionVersionId\" = $6, \"FinishedAt\" = $7, \"IncidentCount\" = $8, \"IsExecuting\" = $9, \"IsSystem\" = $10, \"Name\" = $11, \"ParentWorkflowInstanceId\" = $12, \"Status\" = $13, \"SubStatus\" = $14, \"TenantId\" = $15, \"UpdatedAt\" = $16, \"Version\" = $17 WHERE \"Id\" = $18"
+        },
+        {
+          "category": "other",
+          "sha256": "11d1a26af6adbcb3849a1b9b5a639366f49a965df7d0ce9094ad5bdc1c01536c",
+          "count": 1,
+          "verb": "SELECT",
+          "workflow_tables": [
+            "Bookmarks"
+          ]
+        }
+      ],
+      "durable_audit": true
+    },
+    "import": {
+      "counts": {
+        "begin": 0,
+        "commit": 0,
+        "rollback": 0,
+        "advisory_xact_lock": 0,
+        "physical_index_probe": 0,
+        "activity_table_lock": 0,
+        "instance_owner_projection": 0,
+        "activity_owner_projection": 0,
+        "instance_exists": 1,
+        "instance_update": 1,
+        "activity_upsert": 0,
+        "activity_insert": 0,
+        "activity_update": 0,
+        "bookmark_delete": 0,
+        "journal_insert": 0,
+        "other": 2
+      },
+      "server_command_records": 4,
+      "by_postgres_pid": {
+        "87": {
+          "other": 1,
+          "instance_exists": 1
+        },
+        "88": {
+          "other": 1,
+          "instance_update": 1
+        }
+      },
+      "statements": [
+        {
+          "category": "other",
+          "sha256": "98f36323c6bcf3d04d4b423d63caa325d692376ef457a4c1b41c27023a19ebf4",
+          "count": 2,
+          "verb": "DISCARD",
+          "workflow_tables": []
+        },
+        {
+          "category": "instance_exists",
+          "sha256": "eab1e7c55bca9746f335f0cefdd88425ceeeef52ec111b1aa4118ee39f1d3013",
+          "count": 1,
+          "sql": "SELECT EXISTS ( SELECT 1 FROM \"Elsa\".\"WorkflowInstances\" AS w WHERE (w.\"TenantId\" = $1 OR w.\"TenantId\" = '?' OR (w.\"TenantId\" IS NULL AND $2)) AND w.\"Id\" = '?')"
+        },
+        {
+          "category": "instance_update",
+          "sha256": "a9ade5d1b8044c913608416a0f80b1741fbf52504814d4f235c55f4e545d55a4",
+          "count": 1,
+          "sql": "UPDATE \"Elsa\".\"WorkflowInstances\" SET \"CorrelationId\" = $1, \"CreatedAt\" = $2, \"Data\" = $3, \"DataCompressionAlgorithm\" = $4, \"DefinitionId\" = $5, \"DefinitionVersionId\" = $6, \"FinishedAt\" = $7, \"IncidentCount\" = $8, \"IsExecuting\" = $9, \"IsSystem\" = $10, \"Name\" = $11, \"ParentWorkflowInstanceId\" = $12, \"Status\" = $13, \"SubStatus\" = $14, \"TenantId\" = $15, \"UpdatedAt\" = $16, \"Version\" = $17 WHERE \"Id\" = $18"
+        }
+      ],
+      "durable_audit": true
+    }
+  },
+  "valid": true
+}

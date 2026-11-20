@@ -1,0 +1,393 @@
+{
+  "label": "elsa-3.10.2",
+  "client_concurrency": 1,
+  "warmups": 3,
+  "samples": 20,
+  "sha256": {
+    "bin/Release/net10.0/UpstreamControl.dll": "de7c5054ea376e2245c550a461ffa8f7e50a404f0b6f53bb2560279438a5c73f",
+    "packages.lock.json": "62cd520f8f37bd4fc9afe45e8f75c046881de5dcb8c837420705c4de7c88948f",
+    "serial.py": "0e27cd66cfd2462ac4416a51ff589ff459c2e8b29fc5d52c1d378f9b5633230e",
+    "run.py": "695efb4c6fcf20f3433b946552148ea45fda2b9474e2e765f83bf3c9680a41d9",
+    "reference/run.py": "c9e71ce54fdea823cd9061c4d5af5d20c4042bb59ddf35b3fc130120d2b9ad1d",
+    "reference/observer.py": "c74e395a9e054b35e49473a3b7dae43c57746b0adccffc648e4ffa33048f6f2b"
+  },
+  "lanes": {
+    "resume": {
+      "requests": [
+        {
+          "id": "a3a708261c034a93bf6f91864763e970",
+          "phase": "warmup",
+          "ms": 85.762,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "1467168a07694a27ac0bdbc7e1ba7235",
+          "phase": "warmup",
+          "ms": 17.702,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "e614e2fc2d0f4ba59ce611d75bcc7cec",
+          "phase": "warmup",
+          "ms": 15.301,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "c1f9b9f599b146d4afb60d886726f6b2",
+          "phase": "measured",
+          "ms": 13.719,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "c0823d91762b458e96a53de99ef3755b",
+          "phase": "measured",
+          "ms": 14.911,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "e24e741011df4998a9130cce8712bdae",
+          "phase": "measured",
+          "ms": 13.983,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "10d5d58cc9064fe782059ef6d141675e",
+          "phase": "measured",
+          "ms": 13.481,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "ffdfd971d95f4c0995e0135b03d37d78",
+          "phase": "measured",
+          "ms": 13.825,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "0069c83a506a487cb94595f15c8ddfbe",
+          "phase": "measured",
+          "ms": 13.769,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "92d4a87efff64e21ae16c26bb2d0372a",
+          "phase": "measured",
+          "ms": 15.185,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "24f47490927f4a55879fb2e9ae20edca",
+          "phase": "measured",
+          "ms": 18.615,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "5e84f598b8d64a579c9a3f9d59a2f0de",
+          "phase": "measured",
+          "ms": 13.677,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "444d1800a44e490c9fd86f3ade638c23",
+          "phase": "measured",
+          "ms": 12.472,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "f05d9488eba24172992648d8ef0cbcea",
+          "phase": "measured",
+          "ms": 13.114,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "2ea8473da7394c65901c2268bef66391",
+          "phase": "measured",
+          "ms": 12.861,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "b19c1bcece6e4b7798c927f6d296ec77",
+          "phase": "measured",
+          "ms": 13.287,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "a7f657d48e7e4205bef230cb45ed9067",
+          "phase": "measured",
+          "ms": 14.071,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "15232ed6b4eb4bd69d4ed65f01ea0556",
+          "phase": "measured",
+          "ms": 14.55,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "1ab550706ec04268aaaa64495ccd6336",
+          "phase": "measured",
+          "ms": 14.466,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "285343e7861544d985e2e7c7d951e6e9",
+          "phase": "measured",
+          "ms": 13.23,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "856a072ce27c4ff4bdc9096148a61935",
+          "phase": "measured",
+          "ms": 13.078,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "c4062b2afcff4c2c927b5ba24a6291b0",
+          "phase": "measured",
+          "ms": 13.049,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "825cce66dc2d466cb28958753127294a",
+          "phase": "measured",
+          "ms": 12.672,
+          "error": null,
+          "timeout": false
+        }
+      ],
+      "p50_ms": 13.677,
+      "p95_ms": 15.185,
+      "max_ms": 18.615,
+      "finished_sql": 23,
+      "finished_api": 23
+    },
+    "save": {
+      "requests": [
+        {
+          "id": "a3a708261c034a93bf6f91864763e970",
+          "phase": "warmup",
+          "ms": 6.442,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "1467168a07694a27ac0bdbc7e1ba7235",
+          "phase": "warmup",
+          "ms": 3.648,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "e614e2fc2d0f4ba59ce611d75bcc7cec",
+          "phase": "warmup",
+          "ms": 3.827,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "c1f9b9f599b146d4afb60d886726f6b2",
+          "phase": "measured",
+          "ms": 3.732,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "c0823d91762b458e96a53de99ef3755b",
+          "phase": "measured",
+          "ms": 3.425,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "e24e741011df4998a9130cce8712bdae",
+          "phase": "measured",
+          "ms": 3.378,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "10d5d58cc9064fe782059ef6d141675e",
+          "phase": "measured",
+          "ms": 3.607,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "ffdfd971d95f4c0995e0135b03d37d78",
+          "phase": "measured",
+          "ms": 3.705,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "0069c83a506a487cb94595f15c8ddfbe",
+          "phase": "measured",
+          "ms": 4.228,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "92d4a87efff64e21ae16c26bb2d0372a",
+          "phase": "measured",
+          "ms": 3.425,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "24f47490927f4a55879fb2e9ae20edca",
+          "phase": "measured",
+          "ms": 3.642,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "5e84f598b8d64a579c9a3f9d59a2f0de",
+          "phase": "measured",
+          "ms": 3.495,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "444d1800a44e490c9fd86f3ade638c23",
+          "phase": "measured",
+          "ms": 3.491,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "f05d9488eba24172992648d8ef0cbcea",
+          "phase": "measured",
+          "ms": 3.746,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "2ea8473da7394c65901c2268bef66391",
+          "phase": "measured",
+          "ms": 3.974,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "b19c1bcece6e4b7798c927f6d296ec77",
+          "phase": "measured",
+          "ms": 4.131,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "a7f657d48e7e4205bef230cb45ed9067",
+          "phase": "measured",
+          "ms": 3.933,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "15232ed6b4eb4bd69d4ed65f01ea0556",
+          "phase": "measured",
+          "ms": 3.516,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "1ab550706ec04268aaaa64495ccd6336",
+          "phase": "measured",
+          "ms": 3.71,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "285343e7861544d985e2e7c7d951e6e9",
+          "phase": "measured",
+          "ms": 3.722,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "856a072ce27c4ff4bdc9096148a61935",
+          "phase": "measured",
+          "ms": 3.491,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "c4062b2afcff4c2c927b5ba24a6291b0",
+          "phase": "measured",
+          "ms": 18.98,
+          "error": null,
+          "timeout": false
+        },
+        {
+          "id": "825cce66dc2d466cb28958753127294a",
+          "phase": "measured",
+          "ms": 3.955,
+          "error": null,
+          "timeout": false
+        }
+      ],
+      "p50_ms": 3.705,
+      "p95_ms": 4.228,
+      "max_ms": 18.98,
+      "finished_sql": 23,
+      "finished_api": 23
+    }
+  },
+  "pg_version": 160015,
+  "pg_image": "sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657",
+  "routes": {
+    "traceEnabled": false,
+    "runtimeType": "Elsa.Workflows.Runtime.LocalWorkflowRuntime",
+    "storeType": "Elsa.Persistence.EFCore.Modules.Management.EFCoreWorkflowInstanceStore",
+    "counts": {},
+    "versions": {
+      "Elsa": "3.10.2+76700bad5435ab08db5815866f5640101f6d1e25",
+      "Elsa.Workflows.Runtime": "3.10.2+76700bad5435ab08db5815866f5640101f6d1e25",
+      "Elsa.Persistence.EFCore.PostgreSql": "3.10.2+76700bad5435ab08db5815866f5640101f6d1e25",
+      "Elsa.Persistence.EFCore.Common": "3.10.2+76700bad5435ab08db5815866f5640101f6d1e25",
+      "Microsoft.EntityFrameworkCore": "10.0.9",
+      "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.2+c46789c136fa63fe5a97577f79c54e1c0ec0e9ef",
+      "Npgsql": "10.0.3+d3768398c17877b3a916c3c4d87e8e11698991fc"
+    }
+  },
+  "migrations": [
+    "20231015122234_Initial",
+    "20231024160952_Initial",
+    "20240329200711_V3_1",
+    "20240329200740_V3_1",
+    "20240610184748_V3_2",
+    "20240610184839_V3_2",
+    "20241212211805_V3_3",
+    "20250116192950_V3_3",
+    "20250222190844_V3_4",
+    "20250222190906_V3_4",
+    "20250530104953_V3_5",
+    "20251116182753_V3_6",
+    "20251204150341_V3_6",
+    "20260122123049_V3_7",
+    "20260520121653_V3_8",
+    "20260924222104_WorkflowDefinitionRegistryGeneration",
+    "20261101100004_TenantScopedDefinitionIds"
+  ],
+  "suspended_sql": 23
+}

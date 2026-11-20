@@ -1,0 +1,330 @@
+{"kind": "begin", "run": 0, "label": "main", "blobs": {"Flamme.Persistence.EFCore.Common.dll": "fed877d77bbc466104b9a88301eccf9845855c1d58255d435e89394e9e66e2fc", "Flamme.Persistence.EFCore.dll": "fd8bdf7743d9707ff8c97753da9fb8a97e3439c64f3fee57c9a8390d6ab6a788", "Flamme.Common.dll": "3b7c90a09d0e83c1c5de6b861cd59d1a2b167f617478daf149181953443d511a", "Flamme.Server.Web.dll": "b5563f48693b298712a36d705cc4898405c91b81e7adb466c917197f1dcec8cc"}}
+{"kind": "host", "version": "16.15 (Debian 16.15-1.pgdg13+2)", "migrations": 15, "runtime": "10.0.11", "store": "Flamme.Persistence.EFCore.Modules.Runtime.EFCoreActivityExecutionStore", "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 1, "milliseconds": 10.8543, "verified": 50, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 2, "milliseconds": 4.7651, "verified": 50, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 3, "milliseconds": 4.432, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 4, "milliseconds": 5.6762, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 5, "milliseconds": 4.1844, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 6, "milliseconds": 4.3553, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 7, "milliseconds": 4.0692, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 8, "milliseconds": 4.4122, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 9, "milliseconds": 28.9277, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 10, "milliseconds": 6.429, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 11, "milliseconds": 5.8697, "verified": 50, "run": 0, "label": "main"}
+{"kind": "commands", "shape": "existing", "size": 50, "commands": 2, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 0, "label": "main"}
+{"kind": "readback", "shape": "existing", "size": 50, "verified": 50, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 1, "milliseconds": 8.8002, "verified": 50, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 2, "milliseconds": 6.9879, "verified": 50, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 3, "milliseconds": 5.7511, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 4, "milliseconds": 4.9921, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 5, "milliseconds": 4.6495, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 6, "milliseconds": 4.5785, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 7, "milliseconds": 4.3726, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 8, "milliseconds": 4.6924, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 9, "milliseconds": 4.5467, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 10, "milliseconds": 4.2438, "verified": 50, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 11, "milliseconds": 4.2165, "verified": 50, "run": 0, "label": "main"}
+{"kind": "commands", "shape": "half-new", "size": 50, "commands": 3, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 2, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 0, "label": "main"}
+{"kind": "readback", "shape": "half-new", "size": 50, "verified": 50, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 1, "milliseconds": 38.9559, "verified": 500, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 2, "milliseconds": 48.745, "verified": 500, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 3, "milliseconds": 40.5929, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 4, "milliseconds": 54.0113, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 5, "milliseconds": 54.028, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 6, "milliseconds": 60.682, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 7, "milliseconds": 53.104, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 8, "milliseconds": 51.7807, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 9, "milliseconds": 44.1807, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 10, "milliseconds": 40.9725, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 11, "milliseconds": 34.8552, "verified": 500, "run": 0, "label": "main"}
+{"kind": "commands", "shape": "existing", "size": 500, "commands": 20, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 10, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 0, "label": "main"}
+{"kind": "readback", "shape": "existing", "size": 500, "verified": 500, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 1, "milliseconds": 37.9197, "verified": 500, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 2, "milliseconds": 33.557, "verified": 500, "run": 0, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 3, "milliseconds": 35.4634, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 4, "milliseconds": 33.8349, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 5, "milliseconds": 34.9839, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 6, "milliseconds": 36.8663, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 7, "milliseconds": 36.0297, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 8, "milliseconds": 41.3105, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 9, "milliseconds": 50.7183, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 10, "milliseconds": 36.7296, "verified": 500, "run": 0, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 11, "milliseconds": 34.4251, "verified": 500, "run": 0, "label": "main"}
+{"kind": "commands", "shape": "half-new", "size": 500, "commands": 25, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 15, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 0, "label": "main"}
+{"kind": "readback", "shape": "half-new", "size": 500, "verified": 500, "run": 0, "label": "main"}
+{"kind": "pass", "run": 0, "label": "main"}
+{"kind": "begin", "run": 1, "label": "previous", "blobs": {"Flamme.Persistence.EFCore.Common.dll": "52f27c3bb9f62d18c401cc1237f355523ab581e52c43947dac674d29f19fb357", "Flamme.Persistence.EFCore.dll": "1c80850001f8054dcca611832f602ba45b3a64cf6bf4deb6849299121ffad0d4", "Flamme.Common.dll": "4a44b36c8687acc57d69e4979045236b1e7bf39859f243c86c769c5c1a5f7cb0", "Flamme.Server.Web.dll": "01b7c9cb779b29ba5c1d75e4857b08e895e6e8b01980e99855baa126c63d279d"}}
+{"kind": "host", "version": "16.15 (Debian 16.15-1.pgdg13+2)", "migrations": 15, "runtime": "10.0.11", "store": "Flamme.Persistence.EFCore.Modules.Runtime.EFCoreActivityExecutionStore", "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 1, "milliseconds": 11.1588, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 2, "milliseconds": 5.6526, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 3, "milliseconds": 10.3335, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 4, "milliseconds": 5.2899, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 5, "milliseconds": 5.1908, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 6, "milliseconds": 5.4132, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 7, "milliseconds": 5.1073, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 8, "milliseconds": 5.2755, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 9, "milliseconds": 26.9484, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 10, "milliseconds": 5.5492, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 11, "milliseconds": 5.8309, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "commands", "shape": "existing", "size": 50, "commands": 4, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 1, "label": "previous"}
+{"kind": "readback", "shape": "existing", "size": 50, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 1, "milliseconds": 5.8054, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 2, "milliseconds": 5.589, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 3, "milliseconds": 5.2437, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 4, "milliseconds": 5.0513, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 5, "milliseconds": 12.3175, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 6, "milliseconds": 8.0392, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 7, "milliseconds": 5.9716, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 8, "milliseconds": 5.5557, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 9, "milliseconds": 5.8454, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 10, "milliseconds": 5.7387, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 11, "milliseconds": 6.0875, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "commands", "shape": "half-new", "size": 50, "commands": 4, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 1, "label": "previous"}
+{"kind": "readback", "shape": "half-new", "size": 50, "verified": 50, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 1, "milliseconds": 36.5615, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 2, "milliseconds": 36.9227, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 3, "milliseconds": 40.7093, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 4, "milliseconds": 39.9459, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 5, "milliseconds": 43.3324, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 6, "milliseconds": 33.1113, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 7, "milliseconds": 46.1418, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 8, "milliseconds": 39.0551, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 9, "milliseconds": 43.9636, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 10, "milliseconds": 43.8822, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 11, "milliseconds": 51.2215, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "commands", "shape": "existing", "size": 500, "commands": 13, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 1, "label": "previous"}
+{"kind": "readback", "shape": "existing", "size": 500, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 1, "milliseconds": 48.6919, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 2, "milliseconds": 41.9877, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 3, "milliseconds": 37.349, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 4, "milliseconds": 59.4379, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 5, "milliseconds": 43.3874, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 6, "milliseconds": 35.3762, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 7, "milliseconds": 33.8558, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 8, "milliseconds": 25.6657, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 9, "milliseconds": 24.2282, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 10, "milliseconds": 24.9362, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 11, "milliseconds": 24.8254, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "commands", "shape": "half-new", "size": 500, "commands": 13, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 1, "label": "previous"}
+{"kind": "readback", "shape": "half-new", "size": 500, "verified": 500, "run": 1, "label": "previous"}
+{"kind": "pass", "run": 1, "label": "previous"}
+{"kind": "begin", "run": 2, "label": "candidate", "blobs": {"Flamme.Persistence.EFCore.Common.dll": "38d6251906d1d0a9a8ff094549116f5ba1db17d599e613995f66a2df607b4525", "Flamme.Persistence.EFCore.dll": "decb70e0ec5cad4ecfb237890c5e546c207cb4ac17992a76db0bc61679830927", "Flamme.Common.dll": "ea3c7f8ed4c1c72738e829964ae3aa578acb7a12d2b2ab18215810e9250f2d03", "Flamme.Server.Web.dll": "4ca85b6441a4f1d90569ed41e20056447c7015d38231292f5eb805ae847e6c6b"}}
+{"kind": "host", "version": "16.15 (Debian 16.15-1.pgdg13+2)", "migrations": 15, "runtime": "10.0.11", "store": "Flamme.Persistence.EFCore.Modules.Runtime.EFCoreActivityExecutionStore", "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 1, "milliseconds": 9.9326, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 2, "milliseconds": 8.0197, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 3, "milliseconds": 7.8847, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 4, "milliseconds": 6.6662, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 5, "milliseconds": 7.5925, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 6, "milliseconds": 7.9018, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 7, "milliseconds": 8.14, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 8, "milliseconds": 7.7743, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 9, "milliseconds": 14.5438, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 10, "milliseconds": 7.849, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 11, "milliseconds": 7.8573, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "commands", "shape": "existing", "size": 50, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 0, "updates": 50, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 2, "label": "candidate"}
+{"kind": "readback", "shape": "existing", "size": 50, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 1, "milliseconds": 8.2092, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 2, "milliseconds": 7.0532, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 3, "milliseconds": 6.9849, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 4, "milliseconds": 7.1671, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 5, "milliseconds": 6.7624, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 6, "milliseconds": 7.2702, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 7, "milliseconds": 7.0352, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 8, "milliseconds": 7.2592, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 9, "milliseconds": 8.1819, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 10, "milliseconds": 11.8222, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 11, "milliseconds": 8.3712, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "commands", "shape": "half-new", "size": 50, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 25, "updates": 25, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 2, "label": "candidate"}
+{"kind": "readback", "shape": "half-new", "size": 50, "verified": 50, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 1, "milliseconds": 75.9171, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 2, "milliseconds": 69.46, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 3, "milliseconds": 85.9397, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 4, "milliseconds": 65.2262, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 5, "milliseconds": 67.9145, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 6, "milliseconds": 70.1625, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 7, "milliseconds": 63.8217, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 8, "milliseconds": 62.5963, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 9, "milliseconds": 69.9785, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 10, "milliseconds": 78.6867, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 11, "milliseconds": 61.0652, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "commands", "shape": "existing", "size": 500, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 0, "updates": 500, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 2, "label": "candidate"}
+{"kind": "readback", "shape": "existing", "size": 500, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 1, "milliseconds": 64.3905, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 2, "milliseconds": 59.7388, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 3, "milliseconds": 59.8501, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 4, "milliseconds": 64.4414, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 5, "milliseconds": 57.6466, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 6, "milliseconds": 55.401, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 7, "milliseconds": 55.9085, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 8, "milliseconds": 53.641, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 9, "milliseconds": 53.0175, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 10, "milliseconds": 52.5206, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 11, "milliseconds": 53.6097, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "commands", "shape": "half-new", "size": 500, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 250, "updates": 250, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 2, "label": "candidate"}
+{"kind": "readback", "shape": "half-new", "size": 500, "verified": 500, "run": 2, "label": "candidate"}
+{"kind": "pass", "run": 2, "label": "candidate"}
+{"kind": "begin", "run": 3, "label": "candidate", "blobs": {"Flamme.Persistence.EFCore.Common.dll": "38d6251906d1d0a9a8ff094549116f5ba1db17d599e613995f66a2df607b4525", "Flamme.Persistence.EFCore.dll": "decb70e0ec5cad4ecfb237890c5e546c207cb4ac17992a76db0bc61679830927", "Flamme.Common.dll": "ea3c7f8ed4c1c72738e829964ae3aa578acb7a12d2b2ab18215810e9250f2d03", "Flamme.Server.Web.dll": "4ca85b6441a4f1d90569ed41e20056447c7015d38231292f5eb805ae847e6c6b"}}
+{"kind": "host", "version": "16.15 (Debian 16.15-1.pgdg13+2)", "migrations": 15, "runtime": "10.0.11", "store": "Flamme.Persistence.EFCore.Modules.Runtime.EFCoreActivityExecutionStore", "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 1, "milliseconds": 7.1973, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 2, "milliseconds": 6.9988, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 3, "milliseconds": 6.6958, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 4, "milliseconds": 6.6449, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 5, "milliseconds": 6.602, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 6, "milliseconds": 6.858, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 7, "milliseconds": 6.934, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 8, "milliseconds": 6.6941, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 9, "milliseconds": 13.058, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 10, "milliseconds": 6.7713, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 11, "milliseconds": 6.7836, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "commands", "shape": "existing", "size": 50, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 0, "updates": 50, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 3, "label": "candidate"}
+{"kind": "readback", "shape": "existing", "size": 50, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 1, "milliseconds": 7.4073, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 2, "milliseconds": 6.474, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 3, "milliseconds": 6.4154, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 4, "milliseconds": 8.6833, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 5, "milliseconds": 8.4376, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 6, "milliseconds": 7.205, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 7, "milliseconds": 6.7134, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 8, "milliseconds": 6.6165, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 9, "milliseconds": 7.5337, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 10, "milliseconds": 7.2329, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 11, "milliseconds": 6.2405, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "commands", "shape": "half-new", "size": 50, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 25, "updates": 25, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 3, "label": "candidate"}
+{"kind": "readback", "shape": "half-new", "size": 50, "verified": 50, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 1, "milliseconds": 54.1145, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 2, "milliseconds": 64.6836, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 3, "milliseconds": 76.8441, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 4, "milliseconds": 56.2365, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 5, "milliseconds": 58.5407, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 6, "milliseconds": 54.0575, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 7, "milliseconds": 54.9346, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 8, "milliseconds": 53.5646, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 9, "milliseconds": 60.6479, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 10, "milliseconds": 66.5879, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 11, "milliseconds": 54.5715, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "commands", "shape": "existing", "size": 500, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 0, "updates": 500, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 3, "label": "candidate"}
+{"kind": "readback", "shape": "existing", "size": 500, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 1, "milliseconds": 62.4397, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 2, "milliseconds": 55.8363, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 3, "milliseconds": 56.482, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 4, "milliseconds": 62.1475, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 5, "milliseconds": 56.884, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 6, "milliseconds": 52.8538, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 7, "milliseconds": 50.6366, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 8, "milliseconds": 56.9715, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 9, "milliseconds": 50.824, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 10, "milliseconds": 50.6225, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 11, "milliseconds": 51.4673, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "commands", "shape": "half-new", "size": 500, "commands": 2, "starts": 1, "commits": 1, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 0, "inserts": 250, "updates": 250, "readSample": "SELECT a.\"Id\" AS \"Key\", a.\"TenantId\" AS \"Owner\"", "dmlSample": "UPDATE \"Elsa\".\"ActivityExecutionRecords\" SET \"ActivityId\" = @p0, \"ActivityName\" = @p1, \"ActivityNodeId\" = @p2, \"ActivityType\" = @p3, \"ActivityTypeVersion\" = @p4, \"AggregateFaul", "run": 3, "label": "candidate"}
+{"kind": "readback", "shape": "half-new", "size": 500, "verified": 500, "run": 3, "label": "candidate"}
+{"kind": "pass", "run": 3, "label": "candidate"}
+{"kind": "begin", "run": 4, "label": "previous", "blobs": {"Flamme.Persistence.EFCore.Common.dll": "52f27c3bb9f62d18c401cc1237f355523ab581e52c43947dac674d29f19fb357", "Flamme.Persistence.EFCore.dll": "1c80850001f8054dcca611832f602ba45b3a64cf6bf4deb6849299121ffad0d4", "Flamme.Common.dll": "4a44b36c8687acc57d69e4979045236b1e7bf39859f243c86c769c5c1a5f7cb0", "Flamme.Server.Web.dll": "01b7c9cb779b29ba5c1d75e4857b08e895e6e8b01980e99855baa126c63d279d"}}
+{"kind": "host", "version": "16.15 (Debian 16.15-1.pgdg13+2)", "migrations": 15, "runtime": "10.0.11", "store": "Flamme.Persistence.EFCore.Modules.Runtime.EFCoreActivityExecutionStore", "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 1, "milliseconds": 10.9781, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 2, "milliseconds": 6.0527, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 3, "milliseconds": 10.6495, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 4, "milliseconds": 5.3745, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 5, "milliseconds": 5.5099, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 6, "milliseconds": 5.1675, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 7, "milliseconds": 5.4663, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 8, "milliseconds": 5.7807, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 9, "milliseconds": 27.0446, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 10, "milliseconds": 6.0386, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 11, "milliseconds": 5.5707, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "commands", "shape": "existing", "size": 50, "commands": 4, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 4, "label": "previous"}
+{"kind": "readback", "shape": "existing", "size": 50, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 1, "milliseconds": 5.4661, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 2, "milliseconds": 5.3603, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 3, "milliseconds": 5.7992, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 4, "milliseconds": 5.2649, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 5, "milliseconds": 5.1139, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 6, "milliseconds": 5.0569, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 7, "milliseconds": 5.0297, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 8, "milliseconds": 5.1681, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 9, "milliseconds": 5.2583, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 10, "milliseconds": 5.795, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 11, "milliseconds": 5.8137, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "commands", "shape": "half-new", "size": 50, "commands": 4, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 4, "label": "previous"}
+{"kind": "readback", "shape": "half-new", "size": 50, "verified": 50, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 1, "milliseconds": 40.8658, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 2, "milliseconds": 37.9171, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 3, "milliseconds": 37.8681, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 4, "milliseconds": 38.0281, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 5, "milliseconds": 47.3099, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 6, "milliseconds": 36.4862, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 7, "milliseconds": 52.3887, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 8, "milliseconds": 42.2433, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 9, "milliseconds": 48.7251, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 10, "milliseconds": 49.403, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 11, "milliseconds": 47.3242, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "commands", "shape": "existing", "size": 500, "commands": 13, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 4, "label": "previous"}
+{"kind": "readback", "shape": "existing", "size": 500, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 1, "milliseconds": 46.1642, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 2, "milliseconds": 43.5871, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 3, "milliseconds": 44.4929, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 4, "milliseconds": 47.2655, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 5, "milliseconds": 38.5256, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 6, "milliseconds": 27.9999, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 7, "milliseconds": 31.7099, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 8, "milliseconds": 28.8801, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 9, "milliseconds": 26.2316, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 10, "milliseconds": 52.3252, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 11, "milliseconds": 33.8377, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "commands", "shape": "half-new", "size": 500, "commands": 13, "starts": 1, "commits": 1, "catalogProbes": 2, "tableLocks": 1, "advisoryLocks": 0, "reads": 2, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT pg_catalog.current_setting('transaction_isolation') IN ('read committed', 'read uncommitted')", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" AS stored (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"Ca", "run": 4, "label": "previous"}
+{"kind": "readback", "shape": "half-new", "size": 500, "verified": 500, "run": 4, "label": "previous"}
+{"kind": "pass", "run": 4, "label": "previous"}
+{"kind": "begin", "run": 5, "label": "main", "blobs": {"Flamme.Persistence.EFCore.Common.dll": "fed877d77bbc466104b9a88301eccf9845855c1d58255d435e89394e9e66e2fc", "Flamme.Persistence.EFCore.dll": "fd8bdf7743d9707ff8c97753da9fb8a97e3439c64f3fee57c9a8390d6ab6a788", "Flamme.Common.dll": "3b7c90a09d0e83c1c5de6b861cd59d1a2b167f617478daf149181953443d511a", "Flamme.Server.Web.dll": "b5563f48693b298712a36d705cc4898405c91b81e7adb466c917197f1dcec8cc"}}
+{"kind": "host", "version": "16.15 (Debian 16.15-1.pgdg13+2)", "migrations": 15, "runtime": "10.0.11", "store": "Flamme.Persistence.EFCore.Modules.Runtime.EFCoreActivityExecutionStore", "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 1, "milliseconds": 11.0805, "verified": 50, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 2, "milliseconds": 4.5166, "verified": 50, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 50, "iteration": 3, "milliseconds": 4.5202, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 4, "milliseconds": 4.472, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 5, "milliseconds": 4.3951, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 6, "milliseconds": 3.9945, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 7, "milliseconds": 4.5024, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 8, "milliseconds": 4.5934, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 9, "milliseconds": 24.4265, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 10, "milliseconds": 6.3904, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 50, "iteration": 11, "milliseconds": 4.9322, "verified": 50, "run": 5, "label": "main"}
+{"kind": "commands", "shape": "existing", "size": 50, "commands": 2, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 1, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 5, "label": "main"}
+{"kind": "readback", "shape": "existing", "size": 50, "verified": 50, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 1, "milliseconds": 4.3635, "verified": 50, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 2, "milliseconds": 4.363, "verified": 50, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 50, "iteration": 3, "milliseconds": 4.1164, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 4, "milliseconds": 4.77, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 5, "milliseconds": 4.5326, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 6, "milliseconds": 4.3045, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 7, "milliseconds": 4.3521, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 8, "milliseconds": 4.4496, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 9, "milliseconds": 5.0003, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 10, "milliseconds": 4.6459, "verified": 50, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 50, "iteration": 11, "milliseconds": 4.5596, "verified": 50, "run": 5, "label": "main"}
+{"kind": "commands", "shape": "half-new", "size": 50, "commands": 3, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 2, "upserts": 1, "inserts": 1, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 5, "label": "main"}
+{"kind": "readback", "shape": "half-new", "size": 50, "verified": 50, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 1, "milliseconds": 39.1585, "verified": 500, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 2, "milliseconds": 38.7048, "verified": 500, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "existing", "size": 500, "iteration": 3, "milliseconds": 47.5857, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 4, "milliseconds": 60.6888, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 5, "milliseconds": 51.2615, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 6, "milliseconds": 48.1837, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 7, "milliseconds": 50.0167, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 8, "milliseconds": 49.246, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 9, "milliseconds": 46.6805, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 10, "milliseconds": 53.13, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "existing", "size": 500, "iteration": 11, "milliseconds": 45.7564, "verified": 500, "run": 5, "label": "main"}
+{"kind": "commands", "shape": "existing", "size": 500, "commands": 20, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 10, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 5, "label": "main"}
+{"kind": "readback", "shape": "existing", "size": 500, "verified": 500, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 1, "milliseconds": 43.6033, "verified": 500, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 2, "milliseconds": 44.5162, "verified": 500, "run": 5, "label": "main"}
+{"kind": "warmup", "shape": "half-new", "size": 500, "iteration": 3, "milliseconds": 46.9231, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 4, "milliseconds": 51.2237, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 5, "milliseconds": 47.5884, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 6, "milliseconds": 42.7718, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 7, "milliseconds": 44.1503, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 8, "milliseconds": 45.907, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 9, "milliseconds": 43.6764, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 10, "milliseconds": 41.6387, "verified": 500, "run": 5, "label": "main"}
+{"kind": "measure", "shape": "half-new", "size": 500, "iteration": 11, "milliseconds": 55.4181, "verified": 500, "run": 5, "label": "main"}
+{"kind": "commands", "shape": "half-new", "size": 500, "commands": 25, "starts": 0, "commits": 0, "catalogProbes": 0, "tableLocks": 0, "advisoryLocks": 0, "reads": 15, "upserts": 10, "inserts": 10, "updates": 0, "readSample": "SELECT a.\"Id\", a.\"TenantId\"", "dmlSample": "INSERT INTO \"Elsa\".\"ActivityExecutionRecords\" (\"Id\", \"ActivityId\", \"ActivityName\", \"ActivityNodeId\", \"ActivityType\", \"ActivityTypeVersion\", \"AggregateFaultCount\", \"CallStackDep", "run": 5, "label": "main"}
+{"kind": "readback", "shape": "half-new", "size": 500, "verified": 500, "run": 5, "label": "main"}
+{"kind": "pass", "run": 5, "label": "main"}

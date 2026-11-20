@@ -1,0 +1,42 @@
+{
+  "as_of": "2026-11-20",
+  "target": "net10.0",
+  "sdk": "10.0.400",
+  "configuration": "Release",
+  "source": "https://api.nuget.org/v3/index.json",
+  "repository": "https://github.com/elsa-workflows/elsa-core",
+  "tag": "3.10.2",
+  "source_commit": "76700bad5435ab08db5815866f5640101f6d1e25",
+  "direct_packages": {
+    "Elsa": {
+      "version": "3.10.2",
+      "archive_sha512_base64": "9Kd31ZekVq7Eh2nMYWk0YCV5RkRFIBZ87VBuEv2kSW4D44hZw4dz9Fx/NMdNOPyoi2EjnRwlOc51WTBxhqgA3Q==",
+      "nuget_lock_content_hash": "CpO9kAVH69MC4IzykH/n1RfWP1/wa2bzZENtd/CqtCwnn6tZhcI6nh9DWv06UBYe33pw3bbiGjPJ47QabVNOLQ=="
+    },
+    "Elsa.Http": {
+      "version": "3.10.2",
+      "archive_sha512_base64": "XoZzt4KjRIVf7WSfkIO9vt0ePv3AyfpnIkFnNdVlI+VYFs3kW7Fl+c1+XtVAU8i6wdoJl3Vumg/Bay1/CyZNwA==",
+      "nuget_lock_content_hash": "4B6ckLOIyrAY/cPgJ/qoYZekuZffOAfTyN1VNG31wPJOZzAO/KG/qSeWr8PP/3j/kRP8rPzFlkWw3Xcz+j4lpw=="
+    },
+    "Elsa.Identity": {
+      "version": "3.10.2",
+      "archive_sha512_base64": "MJbNOIYGSfjiqii8LYX2PPXiIW1BoTYOBK01VrbxIz1YGWokWjUxRY9hUsNg3wFdnofc0/PUYaOlkpaeQAiQjQ==",
+      "nuget_lock_content_hash": "DnKPHAKaw2JRv8nJLo8MszY/AU5+jtpNLPmDTYze025aUlS3V7/8GkkqMGJRbYHOZ9xpNNw7oudGrC4Bm2F9BA=="
+    },
+    "Elsa.Persistence.EFCore.PostgreSql": {
+      "version": "3.10.2",
+      "archive_sha512_base64": "88/ufpPaljTOXZpCviYINKPHU7OioEaG2qGY1X9pCF2AunrBWiB/qJ4VLlwwSDeLaWMdDaFZBgQsgCcdizAUGA==",
+      "nuget_lock_content_hash": "wMEWH8tnihLyjvMXF1vWlZlOxo6GAePM5SzeYQJb81rvl9vquOh9+M4hFjWB3Kxie85iw60Y8Q9aoiMeJ5vMEQ=="
+    },
+    "Elsa.Workflows.Api": {
+      "version": "3.10.2",
+      "archive_sha512_base64": "Qs20+CmM3efdPQENvXtarziV+vBRmIGX/KswgQvPXy6T9Txi41ND0v/gWOsWZL7TnL2YmWv01fgF4dGphl438w==",
+      "nuget_lock_content_hash": "0bTZtl47cw/3mxgGmxW9Ua9l3H36SgRGX8t56XlJDGPsDnvbKi+NX7zXxxkmxOXji1nQ2YDxQ7LMbL7x2ggNug=="
+    }
+  },
+  "package_source_and_lock_metadata_matches": 110,
+  "elsa_manifest_commit_matches": 26,
+  "lock_sha256": "62cd520f8f37bd4fc9afe45e8f75c046881de5dcb8c837420705c4de7c88948f",
+  "postgres_image": "postgres@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657",
+  "postgres_image_platform": "linux/arm64"
+}
